@@ -1,0 +1,35 @@
+[package]
+name = "ext-cardano-node"
+version = "0.1.0"
+edition = "2021"
+default-run = "controller"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.4.1"
+dotenv = "0.15.0"
+futures = "0.3.30"
+k8s-openapi = { version = "0.20.0", features = ["latest"] }
+kube = { version = "0.87.2", features = ["runtime", "client", "derive"] }
+lazy_static = "1.4.0"
+prometheus = "0.13.3"
+schemars = "0.8.16"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+serde_yaml = "0.9.29"
+thiserror = "1.0.52"
+tokio = { version = "1.35.1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+
+[[bin]]
+name="controller"
+path="src/main.rs"
+
+[[bin]]
+name="crdgen"
+path="src/crdgen.rs"
+
+[lib]
+path = "src/lib.rs"
