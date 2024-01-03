@@ -1,11 +1,13 @@
 use futures::StreamExt;
 use kube::{
+    api::ListParams,
     runtime::{controller::Action, watcher::Config as WatcherConfig, Controller},
     Api, Client, CustomResource, ResourceExt,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
+use tracing::{error, info};
 
 use crate::{Error, Metrics, Network, Result, State};
 
@@ -51,6 +53,8 @@ async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Actio
     let _client = ctx.client.clone();
     let _namespace = crd.namespace().unwrap();
 
+    info!(name = crd.name_any(), "reconcile");
+
     Ok(Action::await_change())
 }
 
@@ -59,16 +63,23 @@ fn error_policy(crd: Arc<CardanoNodePort>, err: &Error, ctx: Arc<Context>) -> Ac
     Action::requeue(Duration::from_secs(5))
 }
 
-pub async fn run(state: Arc<State>) -> Result<(), Error> {
-    let client = Client::try_default().await?;
+pub async fn run(state: Arc<State>) {
+    let client = Client::try_default()
+        .await
+        .expect("failed to create kube client");
+
     let crds = Api::<CardanoNodePort>::all(client.clone());
+    if let Err(e) = crds.list(&ListParams::default().limit(1)).await {
+        error!("CRD is not queryable; {e:?}. Is the CRD installed?");
+        std::process::exit(1);
+    }
+
     let ctx = Context::new(client, state.metrics.clone());
 
     Controller::new(crds, WatcherConfig::default().any_semantic())
         .shutdown_on_signal()
         .run(reconcile, error_policy, Arc::new(ctx))
+        .filter_map(|x| async move { std::result::Result::ok(x) })
         .for_each(|_| futures::future::ready(()))
         .await;
-
-    Ok(())
 }
