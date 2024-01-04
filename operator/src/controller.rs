@@ -2,14 +2,17 @@ use futures::StreamExt;
 use kube::{
     api::ListParams,
     runtime::{controller::Action, watcher::Config as WatcherConfig, Controller},
-    Api, Client, CustomResource, ResourceExt,
+    Api, Client, CustomResource,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
-use tracing::{error, info};
+use tracing::error;
 
-use crate::{Error, Metrics, Network, Result, State};
+use crate::{
+    gateway::{handle_reference_grant, handle_tls_route},
+    Error, Metrics, Network, Result, State,
+};
 
 pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 
@@ -35,8 +38,7 @@ pub struct CardanoNodePortSpec {
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortStatus {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub endpoint_url: Option<String>,
+    pub endpoint_url: String,
 }
 
 struct Context {
@@ -50,15 +52,14 @@ impl Context {
 }
 
 async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Action> {
-    let _client = ctx.client.clone();
-    let _namespace = crd.namespace().unwrap();
-
-    info!(name = crd.name_any(), "reconcile");
+    handle_reference_grant(ctx.client.clone(), &crd).await?;
+    handle_tls_route(ctx.client.clone(), &crd).await?;
 
     Ok(Action::await_change())
 }
 
 fn error_policy(crd: Arc<CardanoNodePort>, err: &Error, ctx: Arc<Context>) -> Action {
+    error!(error = err.to_string(), "reconcile failed");
     ctx.metrics.reconcile_failure(&crd, err);
     Action::requeue(Duration::from_secs(5))
 }

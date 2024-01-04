@@ -66,10 +66,12 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                   "nullable" = true
                   "properties" = {
                     "endpointUrl" = {
-                      "nullable" = true
                       "type" = "string"
                     }
                   }
+                  "required" = [
+                    "endpointUrl",
+                  ]
                   "type" = "object"
                 }
               }

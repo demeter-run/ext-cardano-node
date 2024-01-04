@@ -13,7 +13,7 @@ pub fn get_config() -> &'static Config {
 pub struct Config {
     pub dns_zone: String,
     pub namespace: String,
-    pub node_port: String,
+    pub node_port: u32,
 }
 
 impl Config {
@@ -21,7 +21,7 @@ impl Config {
         Self {
             dns_zone: env::var("DNS_ZONE").unwrap_or("demeter.run".into()),
             namespace: env::var("NAMESPACE").unwrap_or("ftr-cardano-node-v1".into()),
-            node_port: "1337".into(),
+            node_port: 9443,
         }
     }
 }

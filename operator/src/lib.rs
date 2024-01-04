@@ -9,6 +9,9 @@ use thiserror::Error;
 pub enum Error {
     #[error("Kube Error: {0}")]
     KubeError(#[source] kube::Error),
+
+    #[error("Deserialize Error: {0}")]
+    DeserializeError(#[source] serde_json::Error),
 }
 impl Error {
     pub fn metric_label(&self) -> String {
@@ -18,6 +21,11 @@ impl Error {
 impl From<kube::Error> for Error {
     fn from(value: kube::Error) -> Self {
         Error::KubeError(value)
+    }
+}
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Error::DeserializeError(value)
     }
 }
 
@@ -70,3 +78,9 @@ pub use metrics::*;
 
 mod config;
 pub use config::*;
+
+mod helpers;
+pub use helpers::*;
+
+mod handlers;
+pub use handlers::*;
