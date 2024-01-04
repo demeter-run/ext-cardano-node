@@ -1,9 +1,9 @@
-use std::{sync::Arc, thread::sleep, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use kube::ResourceExt;
 use prometheus::{opts, IntCounterVec, Registry};
 
-use crate::{Error, CardanoNodePort, State};
+use crate::{CardanoNodePort, Error, State};
 
 #[derive(Clone)]
 pub struct Metrics {
@@ -39,8 +39,10 @@ impl Metrics {
     }
 }
 
-pub async fn run_metrics_collector(_state: Arc<State>) -> Result<(), Error> {
-    loop {
-        sleep(Duration::from_secs(6))
-    }
+pub async fn run_metrics_collector(_state: Arc<State>) {
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_secs(6)).await;
+        }
+    });
 }
