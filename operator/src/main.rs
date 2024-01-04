@@ -4,7 +4,7 @@ use actix_web::{
 use dotenv::dotenv;
 use prometheus::{Encoder, TextEncoder};
 use std::{io, sync::Arc};
-use tracing::Level;
+use tracing::{info, Level};
 
 use ext_cardano_node::{controller, metrics as metrics_collector, State};
 
@@ -42,7 +42,8 @@ async fn main() -> io::Result<()> {
             .service(health)
             .service(metrics)
     })
-    .bind(addr)?;
+    .bind(&addr)?;
+    info!({ addr }, "metrics server running");
 
     tokio::join!(server.run(), controller, metrics_collector).0?;
 

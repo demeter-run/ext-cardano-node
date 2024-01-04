@@ -7,7 +7,7 @@ use kube::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     gateway::{handle_reference_grant, handle_tls_route},
@@ -65,6 +65,8 @@ fn error_policy(crd: Arc<CardanoNodePort>, err: &Error, ctx: Arc<Context>) -> Ac
 }
 
 pub async fn run(state: Arc<State>) {
+    info!("listening crds running");
+
     let client = Client::try_default()
         .await
         .expect("failed to create kube client");

@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use kube::ResourceExt;
 use prometheus::{opts, IntCounterVec, Registry};
+use tracing::info;
 
 use crate::{CardanoNodePort, Error, State};
 
@@ -40,6 +41,8 @@ impl Metrics {
 }
 
 pub async fn run_metrics_collector(_state: Arc<State>) {
+    info!("collecting metrics running");
+
     tokio::spawn(async {
         loop {
             tokio::time::sleep(Duration::from_secs(6)).await;
