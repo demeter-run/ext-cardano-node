@@ -32,13 +32,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_single_cert(certs, private_key)?;
     let acceptor = TlsAcceptor::from(Arc::new(config.clone()));
 
-    format!("Proxy server listening");
+    println!("Proxy server listening");
 
     loop {
         let (inbound, _) = listener.accept().await?;
         let acceptor = acceptor.clone();
 
-        let mut outbound = TcpStream::connect(server_addr.clone()).await?;
+        let mut outbound = TcpStream::connect(server_addr).await?;
 
         tokio::spawn(async move {
             let mut tls_stream = acceptor.accept(inbound).await.unwrap();
