@@ -1,4 +1,4 @@
-use ext_cardano_node::controller;
+use operator::controller;
 use kube::CustomResourceExt;
 
 fn main() {

@@ -41,9 +41,8 @@ impl Metrics {
 }
 
 pub async fn run_metrics_collector(_state: Arc<State>) {
-    info!("collecting metrics running");
-
     tokio::spawn(async {
+        info!("collecting metrics running");
         loop {
             tokio::time::sleep(Duration::from_secs(6)).await;
         }
