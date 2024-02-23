@@ -6,7 +6,7 @@ use prometheus::{Encoder, TextEncoder};
 use std::{io, sync::Arc};
 use tracing::{info, Level};
 
-use ext_cardano_node::{controller, metrics as metrics_collector, State};
+use operator::{controller, metrics as metrics_collector, State};
 
 #[get("/metrics")]
 async fn metrics(c: Data<Arc<State>>, _req: HttpRequest) -> impl Responder {
