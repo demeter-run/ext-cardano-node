@@ -11,4 +11,4 @@ metadata:
 spec:
   network: "mainnet"
   version: "stable"
-
+  throughputTier: "1"

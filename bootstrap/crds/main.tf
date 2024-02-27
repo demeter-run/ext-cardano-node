@@ -38,6 +38,11 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
               "name" = "Auth Token"
               "type" = "string"
             },
+            {
+              "jsonPath" = ".status.throughputTier"
+              "name" = "Throughput Tier"
+              "type" = "string"
+            },
           ]
           "name" = "v1alpha1"
           "schema" = {
@@ -55,12 +60,16 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                       ]
                       "type" = "string"
                     }
+                    "throughputTier" = {
+                      "type" = "string"
+                    }
                     "version" = {
                       "type" = "string"
                     }
                   }
                   "required" = [
                     "network",
+                    "throughputTier",
                     "version",
                   ]
                   "type" = "object"

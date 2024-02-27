@@ -25,6 +25,9 @@ spec:
     - jsonPath: .status.authToken
       name: Auth Token
       type: string
+    - jsonPath: .status.throughputTier
+      name: Throughput Tier
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -39,10 +42,13 @@ spec:
                 - preview
                 - sanchonet
                 type: string
+              throughputTier:
+                type: string
               version:
                 type: string
             required:
             - network
+            - throughputTier
             - version
             type: object
           status:
