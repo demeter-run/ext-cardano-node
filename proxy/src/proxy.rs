@@ -60,10 +60,18 @@ pub async fn start(rw_state: Arc<RwLock<State>>) {
             }
 
             let captures = captures_result.unwrap();
+            let token = captures.get(1).unwrap().as_str().to_string();
             let network = captures.get(2).unwrap().as_str().to_string();
             let version = captures.get(3).unwrap().as_str().to_string();
 
-            let node_host = format!("node-{network}-{version}:{}", state.config.node_port);
+            if !state.is_authenticated(&network, &version, &token) {
+                return;
+            }
+
+            let node_host = format!(
+                "node-{network}-{version}.{}:{}",
+                state.config.node_dns, state.config.node_port
+            );
             let lookup_result = lookup_host(node_host).await;
             if let Err(err) = lookup_result {
                 error!(error = err.to_string(), "fail to lookup ip");

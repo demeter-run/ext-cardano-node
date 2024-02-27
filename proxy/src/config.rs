@@ -6,6 +6,7 @@ pub struct Config {
     pub ssl_crt_path: PathBuf,
     pub ssl_key_path: PathBuf,
     pub node_port: u16,
+    pub node_dns: String,
 }
 
 impl Config {
@@ -22,6 +23,7 @@ impl Config {
                 .expect("NODE_PORT must be set")
                 .parse()
                 .expect("NODE_PORT must a number"),
+            node_dns: env::var("NODE_DNS").expect("NODE_DNS must be set"),
         }
     }
 }
