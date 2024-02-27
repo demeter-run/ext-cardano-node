@@ -26,11 +26,16 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
             {
               "jsonPath" = ".spec.version"
               "name" = "Version"
-              "type" = "number"
+              "type" = "string"
             },
             {
-              "jsonPath" = ".status.endpointUrl"
-              "name" = "Endpoint URL"
+              "jsonPath" = ".status.authenticatedEndpoint"
+              "name" = "Authenticated Endpoint"
+              "type" = "string"
+            },
+            {
+              "jsonPath" = ".status.authToken"
+              "name" = "Auth Token"
               "type" = "string"
             },
           ]
@@ -51,9 +56,7 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                       "type" = "string"
                     }
                     "version" = {
-                      "format" = "uint8"
-                      "minimum" = 0
-                      "type" = "integer"
+                      "type" = "string"
                     }
                   }
                   "required" = [
@@ -65,12 +68,16 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                 "status" = {
                   "nullable" = true
                   "properties" = {
-                    "endpointUrl" = {
+                    "authToken" = {
+                      "type" = "string"
+                    }
+                    "authenticatedEndpoint" = {
                       "type" = "string"
                     }
                   }
                   "required" = [
-                    "endpointUrl",
+                    "authToken",
+                    "authenticatedEndpoint",
                   ]
                   "type" = "object"
                 }

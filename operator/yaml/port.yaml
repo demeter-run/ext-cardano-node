@@ -10,5 +10,5 @@ metadata:
   namespace: prj-mainnet-test
 spec:
   network: "mainnet"
-  version: 1
+  version: "stable"
 
