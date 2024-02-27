@@ -44,7 +44,12 @@ pub async fn start(rw_state: Arc<RwLock<State>>) {
         let state = rw_state.read().await.clone();
 
         tokio::spawn(async move {
-            let mut tls_stream = tls_acceptor.accept(inbound).await.unwrap();
+            let tls_stream_result = tls_acceptor.accept(inbound).await;
+            if tls_stream_result.is_err() {
+                return;
+            }
+            let mut tls_stream = tls_stream_result.unwrap();
+
             let (_, server_connection) = tls_stream.get_ref();
 
             let hostname = server_connection.server_name();
