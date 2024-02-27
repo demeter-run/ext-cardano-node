@@ -12,6 +12,12 @@ pub enum Error {
 
     #[error("Deserialize Error: {0}")]
     DeserializeError(#[source] serde_json::Error),
+
+    #[error("Argon Error: {0}")]
+    ArgonError(String),
+
+    #[error("Bech32 Error: {0}")]
+    Bech32Error(String),
 }
 impl Error {
     pub fn metric_label(&self) -> String {
@@ -26,6 +32,21 @@ impl From<kube::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
         Error::DeserializeError(value)
+    }
+}
+impl From<argon2::Error> for Error {
+    fn from(value: argon2::Error) -> Self {
+        Error::ArgonError(value.to_string())
+    }
+}
+impl From<bech32::EncodeError> for Error {
+    fn from(value: bech32::EncodeError) -> Self {
+        Error::Bech32Error(value.to_string())
+    }
+}
+impl From<bech32::primitives::hrp::Error> for Error {
+    fn from(value: bech32::primitives::hrp::Error) -> Self {
+        Error::Bech32Error(value.to_string())
     }
 }
 
@@ -68,6 +89,8 @@ impl Display for Network {
     }
 }
 
+pub use kube;
+
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub mod controller;
@@ -79,8 +102,5 @@ pub use metrics::*;
 mod config;
 pub use config::*;
 
-mod helpers;
-pub use helpers::*;
-
-mod handlers;
-pub use handlers::*;
+mod utils;
+pub use utils::*;

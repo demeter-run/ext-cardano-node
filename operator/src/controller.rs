@@ -2,17 +2,14 @@ use futures::StreamExt;
 use kube::{
     api::ListParams,
     runtime::{controller::Action, watcher::Config as WatcherConfig, Controller},
-    Api, Client, CustomResource,
+    Api, Client, CustomResource, CustomResourceExt, ResourceExt,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tracing::{error, info};
 
-use crate::{
-    gateway::{handle_reference_grant, handle_tls_route},
-    Error, Metrics, Network, Result, State,
-};
+use crate::{build_api_key, build_hostname, patch_resource_status, Error, Metrics, Network, Result, State};
 
 pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 
@@ -26,19 +23,23 @@ pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 #[kube(status = "CardanoNodePortStatus")]
 #[kube(printcolumn = r#"
         {"name": "Network", "jsonPath": ".spec.network", "type": "string"},
-        {"name": "Version", "jsonPath": ".spec.version", "type": "number"},
-        {"name": "Endpoint URL", "jsonPath": ".status.endpointUrl",  "type": "string"}
+        {"name": "Version", "jsonPath": ".spec.version", "type": "string"},
+        {"name": "Authenticated Endpoint", "jsonPath": ".status.authenticatedEndpoint", "type": "string"},
+        {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"},
+        {"name": "Throughput Tier", "jsonPath": ".status.throughputTier", "type": "string"}
     "#)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortSpec {
     pub network: Network,
-    pub version: u8,
+    pub version: String,
+    pub throughput_tier: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortStatus {
-    pub endpoint_url: String,
+    pub authenticated_endpoint: String,
+    pub auth_token: String,
 }
 
 struct Context {
@@ -52,8 +53,26 @@ impl Context {
 }
 
 async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Action> {
-    handle_reference_grant(ctx.client.clone(), &crd).await?;
-    handle_tls_route(ctx.client.clone(), &crd).await?;
+    let key = build_api_key(&crd).await?;
+
+    let status = CardanoNodePortStatus {
+        authenticated_endpoint: build_hostname(&crd.spec.network, &crd.spec.version, &key),
+        auth_token: key,
+    };
+
+    let namespace = crd.namespace().unwrap();
+    let node_port = CardanoNodePort::api_resource();
+
+    patch_resource_status(
+        ctx.client.clone(),
+        &namespace,
+        node_port,
+        &crd.name_any(),
+        serde_json::to_value(status)?,
+    )
+    .await?;
+
+    info!(resource = crd.name_any(), "Reconcile completed");
 
     Ok(Action::await_change())
 }

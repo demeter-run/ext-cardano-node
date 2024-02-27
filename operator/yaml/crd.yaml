@@ -18,9 +18,15 @@ spec:
       type: string
     - jsonPath: .spec.version
       name: Version
-      type: number
-    - jsonPath: .status.endpointUrl
-      name: Endpoint URL
+      type: string
+    - jsonPath: .status.authenticatedEndpoint
+      name: Authenticated Endpoint
+      type: string
+    - jsonPath: .status.authToken
+      name: Auth Token
+      type: string
+    - jsonPath: .status.throughputTier
+      name: Throughput Tier
       type: string
     name: v1alpha1
     schema:
@@ -36,21 +42,25 @@ spec:
                 - preview
                 - sanchonet
                 type: string
+              throughputTier:
+                type: string
               version:
-                format: uint8
-                minimum: 0.0
-                type: integer
+                type: string
             required:
             - network
+            - throughputTier
             - version
             type: object
           status:
             nullable: true
             properties:
-              endpointUrl:
+              authToken:
+                type: string
+              authenticatedEndpoint:
                 type: string
             required:
-            - endpointUrl
+            - authToken
+            - authenticatedEndpoint
             type: object
         required:
         - spec

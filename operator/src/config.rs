@@ -12,16 +12,20 @@ pub fn get_config() -> &'static Config {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub dns_zone: String,
-    pub namespace: String,
-    pub node_port: u32,
+    pub extension_name: String,
+    pub node_port: u16,
+    pub api_key_salt: String,
 }
 
 impl Config {
     pub fn from_env() -> Self {
         Self {
             dns_zone: env::var("DNS_ZONE").unwrap_or("demeter.run".into()),
-            namespace: env::var("NAMESPACE").unwrap_or("ftr-cardano-node-v1".into()),
-            node_port: 9443,
+            extension_name: env::var("EXTENSION_NAME").unwrap_or("node-m1".into()),
+            node_port: env::var("NODE_PORT")
+                .map(|e| e.parse().expect("NODE_PORT must be a number u16"))
+                .unwrap_or(9443),
+            api_key_salt: env::var("API_KEY_SALT").unwrap_or("cardano-node-salt".into()),
         }
     }
 }
