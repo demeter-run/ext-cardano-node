@@ -2,3 +2,4 @@
 iognode
 cert
 docker-compose.yml
+.env*

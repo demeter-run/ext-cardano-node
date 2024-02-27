@@ -1,59 +1,38 @@
-use std::fs::File;
-use std::io::BufReader;
-use std::net::SocketAddr;
-use std::str::FromStr;
-use std::sync::Arc;
-
-use futures::FutureExt;
-use tokio::io::copy_bidirectional;
-use tokio::net::{TcpListener, TcpStream};
-use tokio_rustls::TlsAcceptor;
+use dotenv::dotenv;
+use regex::Regex;
+use std::{error::Error, sync::Arc};
+use tokio::sync::RwLock;
+use tracing::Level;
 
 use crate::config::Config;
 
 mod config;
+mod proxy;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = Config::new();
+    dotenv().ok();
 
-    let listen_addr = SocketAddr::from_str(&config.proxy_addr).unwrap();
-    let server_addr = SocketAddr::from_str(&config.node_addr).unwrap();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    let state = Arc::new(RwLock::new(State::try_new()?));
 
-    let listener = TcpListener::bind(listen_addr).await?;
-    let certs = rustls_pemfile::certs(&mut BufReader::new(&mut File::open(config.ssl_crt_path)?))
-        .collect::<Result<Vec<_>, _>>()?;
-    let private_key =
-        rustls_pemfile::private_key(&mut BufReader::new(&mut File::open(config.ssl_key_path)?))?
-            .unwrap();
+    let proxy_server = proxy::start(state.clone());
 
-    let config = rustls::ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(certs, private_key)?;
-    let acceptor = TlsAcceptor::from(Arc::new(config.clone()));
+    tokio::join!(proxy_server);
 
-    println!("Proxy server listening");
+    Ok(())
+}
 
-    loop {
-        let (inbound, _) = listener.accept().await?;
-        let acceptor = acceptor.clone();
+#[derive(Debug, Clone)]
+pub struct State {
+    config: Config,
+    host_regex: Regex,
+}
+impl State {
+    pub fn try_new() -> Result<Self, Box<dyn Error>> {
+        let config = Config::new();
+        let host_regex = Regex::new(r"(dmtr_[\w\d-]+)\.([\w]+)-([\w\d]+).+")?;
 
-        let mut outbound = TcpStream::connect(server_addr).await?;
-
-        tokio::spawn(async move {
-            let mut tls_stream = acceptor.accept(inbound).await.unwrap();
-            let (_, server_connection) = tls_stream.get_ref();
-            println!("Server name {:?}", server_connection.server_name());
-
-            copy_bidirectional(&mut tls_stream, &mut outbound)
-                .map(|r| {
-                    dbg!(&r);
-
-                    if let Err(e) = r {
-                        println!("Failed to transfer; error={}", e);
-                    }
-                })
-                .await;
-        });
+        Ok(Self { config, host_regex })
     }
 }
