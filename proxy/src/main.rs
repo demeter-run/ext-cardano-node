@@ -1,4 +1,6 @@
 use dotenv::dotenv;
+use metrics::Metrics;
+use prometheus::Registry;
 use regex::Regex;
 use std::{collections::HashMap, error::Error, fmt::Display, sync::Arc};
 use tokio::sync::RwLock;
@@ -8,7 +10,9 @@ use crate::config::Config;
 
 mod auth;
 mod config;
+mod metrics;
 mod proxy;
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,9 +22,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(RwLock::new(State::try_new()?));
 
     let auth = auth::start(state.clone());
+    let metrics = metrics::start(state.clone());
     let proxy_server = proxy::start(state.clone());
 
-    tokio::join!(auth, proxy_server);
+    tokio::join!(auth, metrics, proxy_server);
 
     Ok(())
 }
@@ -28,17 +33,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[derive(Debug, Clone)]
 pub struct State {
     config: Config,
+    metrics: Metrics,
     host_regex: Regex,
     consumers: HashMap<String, Consumer>,
 }
 impl State {
     pub fn try_new() -> Result<Self, Box<dyn Error>> {
         let config = Config::new();
+        let metrics = Metrics::try_new(Registry::default())?;
         let host_regex = Regex::new(r"(dmtr_[\w\d-]+)\.([\w]+)-([\w\d]+).+")?;
         let consumers = HashMap::new();
 
         Ok(Self {
             config,
+            metrics,
             host_regex,
             consumers,
         })

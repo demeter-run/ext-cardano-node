@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 #[derive(Debug, Clone)]
 pub struct Config {
     pub proxy_addr: String,
+    pub prometheus_addr: String,
     pub ssl_crt_path: PathBuf,
     pub ssl_key_path: PathBuf,
     pub node_port: u16,
@@ -13,6 +14,7 @@ impl Config {
     pub fn new() -> Self {
         Self {
             proxy_addr: env::var("PROXY_ADDR").expect("PROXY_ADDR must be set"),
+            prometheus_addr: env::var("PROMETHEUS_ADDR").expect("PROMETHEUS_ADDR must be set"),
             ssl_crt_path: env::var("SSL_CRT_PATH")
                 .map(|e| e.into())
                 .expect("SSL_CRT_PATH must be set"),
