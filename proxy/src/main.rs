@@ -7,6 +7,7 @@ use pingora::{
     server::{configuration::Opt, Server},
     services::{background::background_service, listening::Service},
 };
+use prometheus::{opts, register_int_counter_vec};
 use proxy::ProxyApp;
 use tokio::sync::RwLock;
 use tracing::Level;
@@ -49,7 +50,7 @@ fn main() {
 
     let mut prometheus_service_http =
         pingora::services::listening::Service::prometheus_http_service();
-    prometheus_service_http.add_tcp(&config.proxy_addr);
+    prometheus_service_http.add_tcp(&config.prometheus_addr);
     server.add_service(prometheus_service_http);
 
     server.run_forever();
@@ -57,17 +58,20 @@ fn main() {
 
 #[derive(Debug, Clone)]
 pub struct State {
+    metrics: Metrics,
     consumers: HashMap<String, Consumer>,
 }
 impl State {
     pub fn new() -> Self {
+        let metrics = Metrics::new();
         let consumers = HashMap::new();
-        Self { consumers }
+
+        Self { metrics, consumers }
     }
 
-    pub fn is_authenticated(&self, network: &str, version: &str, token: &str) -> bool {
+    pub fn get_consumer(&self, network: &str, version: &str, token: &str) -> Option<Consumer> {
         let hash_key = format!("{}.{}.{}", network, version, token);
-        self.consumers.get(&hash_key).is_some()
+        self.consumers.get(&hash_key).cloned()
     }
 }
 
@@ -87,5 +91,29 @@ impl Consumer {
 impl Display for Consumer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}", self.namespace, self.port_name)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Metrics {
+    total_packages_bytes: prometheus::IntCounterVec,
+}
+impl Metrics {
+    pub fn new() -> Self {
+        let total_packages_bytes = register_int_counter_vec!(
+            opts!("node_proxy_total_packages_bytes", "Total bytes transferred",),
+            &["consumer"]
+        )
+        .unwrap();
+
+        Self {
+            total_packages_bytes,
+        }
+    }
+
+    pub fn count_total_packages_bytes(&self, consumer: &Consumer, value: usize) {
+        self.total_packages_bytes
+            .with_label_values(&[&consumer.to_string()])
+            .inc_by(value as u64)
     }
 }

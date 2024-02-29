@@ -14,7 +14,7 @@ use tokio::{
 };
 use tracing::error;
 
-use crate::{config::Config, State};
+use crate::{config::Config, Consumer, State};
 
 pub struct ProxyApp {
     client_connector: TransportConnector,
@@ -38,7 +38,13 @@ impl ProxyApp {
         }
     }
 
-    async fn duplex(&self, mut server_session: Stream, mut client_session: Stream) {
+    async fn duplex(
+        &self,
+        state: State,
+        consumer: Consumer,
+        mut server_session: Stream,
+        mut client_session: Stream,
+    ) {
         let mut upstream_buf = [0; 1024];
         let mut downstream_buf = [0; 1024];
         loop {
@@ -54,10 +60,14 @@ impl ProxyApp {
 
             match event {
                 DuplexEvent::DownstreamRead(n) => {
+                    state.metrics.count_total_packages_bytes(&consumer, n);
+
                     client_session.write_all(&upstream_buf[0..n]).await.unwrap();
                     client_session.flush().await.unwrap();
                 }
                 DuplexEvent::UpstreamRead(n) => {
+                    state.metrics.count_total_packages_bytes(&consumer, n);
+
                     server_session
                         .write_all(&downstream_buf[0..n])
                         .await
@@ -78,26 +88,24 @@ impl ServerApp for ProxyApp {
     ) -> Option<Stream> {
         let state = self.state.read().await.clone();
 
-        let hostname = io.get_ssl().unwrap().servername(NameType::HOST_NAME);
+        let hostname = io.get_ssl()?.servername(NameType::HOST_NAME);
         if hostname.is_none() {
             error!("hostname is not present in the certificate");
             return None;
         }
 
-        let captures_result = self.host_regex.captures(hostname.unwrap());
+        let captures_result = self.host_regex.captures(hostname?);
         if captures_result.is_none() {
             error!("invalid hostname pattern");
             return None;
         }
-        let captures = captures_result.unwrap();
+        let captures = captures_result?;
 
-        let token = captures.get(1).unwrap().as_str().to_string();
-        let network = captures.get(2).unwrap().as_str().to_string();
-        let version = captures.get(3).unwrap().as_str().to_string();
+        let token = captures.get(1)?.as_str().to_string();
+        let network = captures.get(2)?.as_str().to_string();
+        let version = captures.get(3)?.as_str().to_string();
 
-        if !state.is_authenticated(&network, &version, &token) {
-            return None;
-        }
+        let consumer = state.get_consumer(&network, &version, &token)?;
 
         let node_host = format!(
             "node-{network}-{version}.{}:{}",
@@ -110,7 +118,7 @@ impl ServerApp for ProxyApp {
             return None;
         }
         let lookup: Vec<SocketAddr> = lookup_result.unwrap().collect();
-        let node_addr = lookup.first().unwrap();
+        let node_addr = lookup.first()?;
 
         let proxy_to = BasicPeer::new(&node_addr.to_string());
 
@@ -118,7 +126,7 @@ impl ServerApp for ProxyApp {
 
         match client_session {
             Ok(client_session) => {
-                self.duplex(io, client_session).await;
+                self.duplex(state, consumer, io, client_session).await;
                 None
             }
             Err(e) => {
