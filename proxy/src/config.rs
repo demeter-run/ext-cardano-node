@@ -1,10 +1,10 @@
-use std::{env, path::PathBuf};
+use std::env;
 
 #[derive(Debug, Clone)]
 pub struct Config {
     pub proxy_addr: String,
-    pub ssl_crt_path: PathBuf,
-    pub ssl_key_path: PathBuf,
+    pub ssl_crt_path: String,
+    pub ssl_key_path: String,
     pub node_port: u16,
     pub node_dns: String,
 }

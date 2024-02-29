@@ -1,6 +1,13 @@
+use std::{collections::HashMap, fmt::Display, sync::Arc};
+
+use auth::AuthBackgroundService;
 use dotenv::dotenv;
-use regex::Regex;
-use std::{collections::HashMap, error::Error, fmt::Display, sync::Arc};
+use pingora::{
+    listeners::Listeners,
+    server::{configuration::Opt, Server},
+    services::{background::background_service, listening::Service},
+};
+use proxy::ProxyApp;
 use tokio::sync::RwLock;
 use tracing::Level;
 
@@ -10,38 +17,52 @@ mod auth;
 mod config;
 mod proxy;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     dotenv().ok();
 
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
-    let state = Arc::new(RwLock::new(State::try_new()?));
 
-    let auth = auth::start(state.clone());
-    let proxy_server = proxy::start(state.clone());
+    let config = Arc::new(Config::new());
+    let state = Arc::new(RwLock::new(State::new()));
 
-    tokio::join!(auth, proxy_server);
+    let opt = Opt::default();
+    let mut server = Server::new(Some(opt)).unwrap();
+    server.bootstrap();
 
-    Ok(())
+    let auth_background_service = background_service(
+        "K8S Auth Service",
+        AuthBackgroundService::new(state.clone()),
+    );
+    server.add_service(auth_background_service);
+
+    let tls_proxy_service = Service::with_listeners(
+        "TLS Proxy Service".to_string(),
+        Listeners::tls(
+            &config.proxy_addr,
+            &config.ssl_crt_path,
+            &config.ssl_key_path,
+        )
+        .unwrap(),
+        Arc::new(ProxyApp::new(config.clone(), state)),
+    );
+    server.add_service(tls_proxy_service);
+
+    let mut prometheus_service_http =
+        pingora::services::listening::Service::prometheus_http_service();
+    prometheus_service_http.add_tcp(&config.proxy_addr);
+    server.add_service(prometheus_service_http);
+
+    server.run_forever();
 }
 
 #[derive(Debug, Clone)]
 pub struct State {
-    config: Config,
-    host_regex: Regex,
     consumers: HashMap<String, Consumer>,
 }
 impl State {
-    pub fn try_new() -> Result<Self, Box<dyn Error>> {
-        let config = Config::new();
-        let host_regex = Regex::new(r"(dmtr_[\w\d-]+)\.([\w]+)-([\w\d]+).+")?;
+    pub fn new() -> Self {
         let consumers = HashMap::new();
-
-        Ok(Self {
-            config,
-            host_regex,
-            consumers,
-        })
+        Self { consumers }
     }
 
     pub fn is_authenticated(&self, network: &str, version: &str, token: &str) -> bool {
