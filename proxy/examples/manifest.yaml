@@ -233,6 +233,8 @@ spec:
           env:
             - name: PROXY_ADDR
               value: "0.0.0.0:80"
+            - name: PROMETHEUS_ADDR
+              value: "0.0.0.0:9187"
             - name: NODE_PORT
               value: "80"
             - name: NODE_DNS
