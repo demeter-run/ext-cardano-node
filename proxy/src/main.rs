@@ -23,8 +23,8 @@ fn main() {
 
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
-    let config = Arc::new(Config::new());
-    let state = Arc::new(RwLock::new(State::new()));
+    let config: Arc<Config> = Arc::default();
+    let state: Arc<RwLock<State>> = Arc::default();
 
     let opt = Opt::default();
     let mut server = Server::new(Some(opt)).unwrap();
@@ -56,7 +56,7 @@ fn main() {
     server.run_forever();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct State {
     metrics: Metrics,
     consumers: HashMap<String, Consumer>,
@@ -115,5 +115,10 @@ impl Metrics {
         self.total_packages_bytes
             .with_label_values(&[&consumer.to_string()])
             .inc_by(value as u64)
+    }
+}
+impl Default for Metrics {
+    fn default() -> Self {
+        Self::new()
     }
 }
