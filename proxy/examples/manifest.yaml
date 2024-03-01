@@ -233,6 +233,8 @@ spec:
           env:
             - name: PROXY_ADDR
               value: "0.0.0.0:80"
+            - name: PROMETHEUS_ADDR
+              value: "0.0.0.0:9187"
             - name: NODE_PORT
               value: "80"
             - name: NODE_DNS
@@ -365,6 +367,7 @@ metadata:
 spec:
   network: "mainnet"
   version: "stable"
+  throughputTier: "1"
 ---
 # Cardano Node Port 2
 apiVersion: demeter.run/v1alpha1
@@ -375,3 +378,4 @@ metadata:
 spec:
   network: "mainnet"
   version: "stable"
+  throughputTier: "1"
