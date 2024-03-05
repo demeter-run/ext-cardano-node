@@ -102,7 +102,7 @@ impl Metrics {
     pub fn new() -> Self {
         let total_packages_bytes = register_int_counter_vec!(
             opts!("node_proxy_total_packages_bytes", "Total bytes transferred",),
-            &["consumer"]
+            &["consumer", "namespace", "instance"]
         )
         .unwrap();
 
@@ -111,9 +111,17 @@ impl Metrics {
         }
     }
 
-    pub fn count_total_packages_bytes(&self, consumer: &Consumer, value: usize) {
+    pub fn count_total_packages_bytes(
+        &self,
+        consumer: &Consumer,
+        namespace: &str,
+        instance: &str,
+        value: usize,
+    ) {
+        let consumer = &consumer.to_string();
+
         self.total_packages_bytes
-            .with_label_values(&[&consumer.to_string()])
+            .with_label_values(&[consumer, namespace, instance])
             .inc_by(value as u64)
     }
 }
