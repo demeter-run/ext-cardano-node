@@ -47,18 +47,35 @@ impl ProxyApp {
     ) {
         let mut upstream_buf = [0; 1024];
         let mut downstream_buf = [0; 1024];
+
         loop {
             let downstream_read = server_session.read(&mut upstream_buf);
             let upstream_read = client_session.read(&mut downstream_buf);
             let event: DuplexEvent;
             select! {
-                n = downstream_read => event
-                    = DuplexEvent::DownstreamRead(n.unwrap()),
-                n = upstream_read => event
-                    = DuplexEvent::UpstreamRead(n.unwrap()),
+                n = downstream_read => {
+                    if let Err(err) = &n {
+                        error!(error=err.to_string(), "Downstream error");
+                        return;
+                    }
+                    event = DuplexEvent::DownstreamRead(n.unwrap())
+                },
+                n = upstream_read => {
+                    if let Err(err) = &n {
+                        error!(error=err.to_string(), "Upstream error");
+                        return;
+                    }
+                    event = DuplexEvent::UpstreamRead(n.unwrap())
+                },
             }
 
             match event {
+                DuplexEvent::DownstreamRead(0) => {
+                    return;
+                }
+                DuplexEvent::UpstreamRead(0) => {
+                    return;
+                }
                 DuplexEvent::DownstreamRead(n) => {
                     state.metrics.count_total_packages_bytes(&consumer, n);
 
