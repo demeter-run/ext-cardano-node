@@ -19,7 +19,7 @@ use tracing::error;
 
 use crate::{Consumer, State};
 
-#[derive(Debug)]
+
 pub struct AuthBackgroundService {
     state: Arc<RwLock<State>>,
 }

@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use auth::AuthBackgroundService;
 use dotenv::dotenv;
+use leaky_bucket::RateLimiter;
 use pingora::{
     listeners::Listeners,
     server::{configuration::Opt, Server},
@@ -9,7 +10,7 @@ use pingora::{
 };
 use prometheus::{opts, register_int_counter_vec, register_int_gauge_vec};
 use proxy::ProxyApp;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tracing::Level;
 
 use crate::config::Config;
@@ -56,17 +57,23 @@ fn main() {
     server.run_forever();
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct State {
     metrics: Metrics,
     consumers: HashMap<String, Consumer>,
+    limiter: Arc<Mutex<HashMap<String, RateLimiter>>>
 }
 impl State {
     pub fn new() -> Self {
         let metrics = Metrics::new();
         let consumers = HashMap::new();
+        let limiter = Default::default();
 
-        Self { metrics, consumers }
+        Self {
+            metrics,
+            consumers,
+            limiter,
+        }
     }
 
     pub fn get_consumer(&self, network: &str, version: &str, token: &str) -> Option<Consumer> {

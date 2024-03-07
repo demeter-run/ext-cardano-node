@@ -1,33 +1,20 @@
 use async_trait::async_trait;
-use lazy_static::lazy_static;
+use leaky_bucket::RateLimiter;
 use pingora::{
     apps::ServerApp, connectors::TransportConnector, protocols::Stream, server::ShutdownWatch,
     tls::ssl::NameType, upstreams::peer::BasicPeer,
 };
-use pingora_limits::rate::Rate;
 use regex::Regex;
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::lookup_host,
     select,
     sync::RwLock,
-    time::sleep,
 };
 use tracing::error;
 
 use crate::{config::Config, Consumer, State};
-
-lazy_static! {
-    static ref RATE_LIMITER_MAP: Arc<Mutex<HashMap<String, Rate>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-}
-const RATE_DURATION: Duration = Duration::from_secs(1);
 
 enum DuplexEvent {
     ClientRead(usize),
@@ -101,10 +88,6 @@ impl ProxyApp {
                 }
 
                 DuplexEvent::ClientRead(bytes) => {
-                    if limiter(&metric_data.consumer.token) >= 10 {
-                        sleep(RATE_DURATION).await;
-                    }
-
                     state.metrics.count_total_packages_bytes(
                         &metric_data.consumer,
                         &metric_data.namespace,
@@ -117,6 +100,8 @@ impl ProxyApp {
                     let _ = io_instance.flush().await;
                 }
                 DuplexEvent::InstanceRead(bytes) => {
+                    self.limiter(&state, &metric_data.consumer.token).await;
+
                     state.metrics.count_total_packages_bytes(
                         &metric_data.consumer,
                         &metric_data.namespace,
@@ -130,6 +115,24 @@ impl ProxyApp {
                 }
             }
         }
+    }
+
+    async fn limiter(&self, state: &State, key: &String) {
+        let mut rate_limiter_map = state.limiter.lock().await;
+        let rate_limiter = match rate_limiter_map.get(key) {
+            None => {
+                let limiter = RateLimiter::builder()
+                .initial(10)
+                    .interval(Duration::from_secs(1))
+                    .build();
+
+                rate_limiter_map.insert(key.into(), limiter);
+                rate_limiter_map.get(key).unwrap()
+            }
+            Some(limiter) => limiter,
+        };
+
+        rate_limiter.acquire(1).await
     }
 }
 
@@ -194,18 +197,4 @@ impl ServerApp for ProxyApp {
             }
         }
     }
-}
-
-fn limiter(key: &String) -> isize {
-    let mut rate_limiter_map = RATE_LIMITER_MAP.lock().unwrap();
-    let rate_limiter = match rate_limiter_map.get(key) {
-        None => {
-            let limiter = Rate::new(RATE_DURATION);
-            rate_limiter_map.insert(key.into(), limiter);
-            rate_limiter_map.get(key).unwrap()
-        }
-        Some(limiter) => limiter,
-    };
-
-    rate_limiter.observe(key, 1)
 }
