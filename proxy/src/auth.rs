@@ -43,12 +43,12 @@ impl AuthBackgroundService {
             if crd.status.is_some() {
                 let network = crd.spec.network.to_string();
                 let version = crd.spec.version.clone();
-                let auth_token = crd.status.as_ref().unwrap().auth_token.clone();
+                let token = crd.status.as_ref().unwrap().auth_token.clone();
                 let namespace = crd.metadata.namespace.as_ref().unwrap().clone();
                 let port_name = crd.name_any();
 
-                let hash_key = format!("{}.{}.{}", network, version, auth_token);
-                let consumer = Consumer::new(namespace, port_name);
+                let hash_key = format!("{}.{}.{}", network, version, token);
+                let consumer = Consumer::new(namespace, port_name, token);
 
                 consumers.insert(hash_key, consumer);
             }
