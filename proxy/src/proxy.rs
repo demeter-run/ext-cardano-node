@@ -40,11 +40,11 @@ struct MetricData {
     instance: String,
 }
 impl MetricData {
-    pub fn new(consumer: &Consumer, instance: &String, namespace: &String) -> Self {
+    pub fn new(consumer: &Consumer, instance: &str, namespace: &str) -> Self {
         Self {
             consumer: consumer.clone(),
-            namespace: namespace.clone(),
-            instance: instance.clone(),
+            namespace: namespace.into(),
+            instance: instance.into(),
         }
     }
 }
@@ -72,6 +72,12 @@ impl ProxyApp {
         state: State,
         metric_data: MetricData,
     ) {
+        state.metrics.inc_total_connections(
+            &metric_data.consumer,
+            &metric_data.namespace,
+            &metric_data.instance,
+        );
+
         let mut io_client_buf = [0; 1024];
         let mut io_instance_buf = [0; 1024];
 
@@ -85,6 +91,12 @@ impl ProxyApp {
 
             match event {
                 DuplexEvent::ClientRead(0) | DuplexEvent::InstanceRead(0) => {
+                    state.metrics.dec_total_connections(
+                        &metric_data.consumer,
+                        &metric_data.namespace,
+                        &metric_data.instance,
+                    );
+
                     return;
                 }
 

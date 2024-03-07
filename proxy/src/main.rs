@@ -7,7 +7,7 @@ use pingora::{
     server::{configuration::Opt, Server},
     services::{background::background_service, listening::Service},
 };
-use prometheus::{opts, register_int_counter_vec};
+use prometheus::{opts, register_int_counter_vec, register_int_gauge_vec};
 use proxy::ProxyApp;
 use tokio::sync::RwLock;
 use tracing::Level;
@@ -79,12 +79,14 @@ impl State {
 pub struct Consumer {
     namespace: String,
     port_name: String,
+    token: String,
 }
 impl Consumer {
-    pub fn new(namespace: String, port_name: String) -> Self {
+    pub fn new(namespace: String, port_name: String, token: String) -> Self {
         Self {
             namespace,
             port_name,
+            token,
         }
     }
 }
@@ -97,9 +99,16 @@ impl Display for Consumer {
 #[derive(Debug, Clone)]
 pub struct Metrics {
     total_packages_bytes: prometheus::IntCounterVec,
+    total_connections: prometheus::IntGaugeVec,
 }
 impl Metrics {
     pub fn new() -> Self {
+        let total_connections = register_int_gauge_vec!(
+            opts!("node_proxy_total_connections", "Total connections",),
+            &["consumer", "namespace", "instance"]
+        )
+        .unwrap();
+
         let total_packages_bytes = register_int_counter_vec!(
             opts!("node_proxy_total_packages_bytes", "Total bytes transferred",),
             &["consumer", "namespace", "instance"]
@@ -108,6 +117,7 @@ impl Metrics {
 
         Self {
             total_packages_bytes,
+            total_connections,
         }
     }
 
@@ -123,6 +133,22 @@ impl Metrics {
         self.total_packages_bytes
             .with_label_values(&[consumer, namespace, instance])
             .inc_by(value as u64)
+    }
+
+    pub fn inc_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
+        let consumer = &consumer.to_string();
+
+        self.total_connections
+            .with_label_values(&[consumer, namespace, instance])
+            .inc()
+    }
+
+    pub fn dec_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
+        let consumer = &consumer.to_string();
+
+        self.total_connections
+            .with_label_values(&[consumer, namespace, instance])
+            .dec()
     }
 }
 impl Default for Metrics {
