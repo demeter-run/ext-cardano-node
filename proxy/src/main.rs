@@ -10,6 +10,8 @@ use pingora::{
 };
 use prometheus::{opts, register_int_counter_vec, register_int_gauge_vec};
 use proxy::ProxyApp;
+use serde::Deserialize;
+use tiers::TierBackgroundService;
 use tokio::sync::{Mutex, RwLock};
 use tracing::Level;
 
@@ -18,6 +20,7 @@ use crate::config::Config;
 mod auth;
 mod config;
 mod proxy;
+mod tiers;
 
 fn main() {
     dotenv().ok();
@@ -36,6 +39,12 @@ fn main() {
         AuthBackgroundService::new(state.clone()),
     );
     server.add_service(auth_background_service);
+
+    let tier_background_service = background_service(
+        "K8S Tier Service",
+        TierBackgroundService::new(state.clone(), config.clone()),
+    );
+    server.add_service(tier_background_service);
 
     let tls_proxy_service = Service::with_listeners(
         "TLS Proxy Service".to_string(),
@@ -61,18 +70,21 @@ fn main() {
 pub struct State {
     metrics: Metrics,
     consumers: HashMap<String, Consumer>,
-    limiter: Arc<Mutex<HashMap<String, RateLimiter>>>
+    limiter: Arc<Mutex<HashMap<String, RateLimiter>>>,
+    tiers: HashMap<String, Tier>,
 }
 impl State {
     pub fn new() -> Self {
         let metrics = Metrics::new();
         let consumers = HashMap::new();
         let limiter = Default::default();
+        let tiers = HashMap::new();
 
         Self {
             metrics,
             consumers,
             limiter,
+            tiers,
         }
     }
 
@@ -101,6 +113,13 @@ impl Display for Consumer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}", self.namespace, self.port_name)
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Tier {
+    name: String,
+    max_connections: u32,
+    max_bytes_per_minute: u32,
 }
 
 #[derive(Debug, Clone)]
