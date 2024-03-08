@@ -90,6 +90,7 @@ impl Display for Network {
 }
 
 pub use kube;
+pub use k8s_openapi;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
