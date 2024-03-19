@@ -24,9 +24,9 @@ pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 #[kube(printcolumn = r#"
         {"name": "Network", "jsonPath": ".spec.network", "type": "string"},
         {"name": "Version", "jsonPath": ".spec.version", "type": "string"},
+        {"name": "Throughput Tier", "jsonPath": ".spec.throughputTier", "type": "string"},
         {"name": "Authenticated Endpoint", "jsonPath": ".status.authenticatedEndpoint", "type": "string"},
-        {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"},
-        {"name": "Throughput Tier", "jsonPath": ".status.throughputTier", "type": "string"}
+        {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"}
     "#)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortSpec {

@@ -19,14 +19,14 @@ spec:
     - jsonPath: .spec.version
       name: Version
       type: string
+    - jsonPath: .spec.throughputTier
+      name: Throughput Tier
+      type: string
     - jsonPath: .status.authenticatedEndpoint
       name: Authenticated Endpoint
       type: string
     - jsonPath: .status.authToken
       name: Auth Token
-      type: string
-    - jsonPath: .status.throughputTier
-      name: Throughput Tier
       type: string
     name: v1alpha1
     schema:

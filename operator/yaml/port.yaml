@@ -11,4 +11,14 @@ metadata:
 spec:
   network: "preview"
   version: "v1"
+  throughputTier: "0"
+---
+apiVersion: demeter.run/v1alpha1
+kind: CardanoNodePort
+metadata:
+  name: mainnet-user-2
+  namespace: prj-mainnet-test
+spec:
+  network: "preview"
+  version: "v1"
   throughputTier: "1"
