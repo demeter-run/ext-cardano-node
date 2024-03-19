@@ -10,17 +10,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: kube-rs
 rules:
-  - apiGroups: ["demeter.run"]
-    resources:
-      [
-        "cardanonodeports",
-        "cardanonodeports/status",
-        "cardanonodeports/finalizers",
-      ]
-    verbs: ["get", "list", "watch", "patch", "update"]
-  - apiGroups: ["events.k8s.io"]
-    resources: ["events"]
-    verbs: ["create"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
 ---
 # Scoped service account
 apiVersion: v1
@@ -203,26 +198,21 @@ data:
     1+pvxRA1z1SjK0UtkVc280pRwNZjue/GtNnc0KgkqN3guJ5WeDumBxmStJ5KGNYG
     T4jj2oxkaijVhOEOzUkq4w==
     -----END PRIVATE KEY-----
-kind: ConfigMap
-metadata:
-  name: proxy-vol
-  namespace: prj-mainnet-test
----
-apiVersion: v1
-data:
   tiers.toml: |
     [[tiers]]
-    name = "default"
-    max_connections = 1
-    max_bytes_per_minute = 7200
+    name = "0"
+    [[tiers.rates]]
+    interval = "1s"
+    limit = 10
 
     [[tiers]]
-    name = "0"
-    max_connections = 1
-    max_bytes_per_minute = 7200
+    name = "1"
+    [[tiers.rates]]
+    interval = "1s"
+    limit = 100
 kind: ConfigMap
 metadata:
-  name: proxy-tiers
+  name: proxy-config
   namespace: prj-mainnet-test
 ---
 apiVersion: apps/v1
@@ -250,24 +240,28 @@ spec:
           env:
             - name: PROXY_ADDR
               value: "0.0.0.0:80"
+            - name: PROXY_NAMESPACE
+              value: "prj-mainnet-test"
             - name: PROMETHEUS_ADDR
               value: "0.0.0.0:9187"
+            - name: PROXY_TIERS_PATH
+              value: "/tcp-proxy/tiers.toml"
             - name: NODE_PORT
               value: "80"
             - name: NODE_DNS
               value: "prj-mainnet-test.svc.cluster.local"
             - name: SSL_CRT_PATH
-              value: "/certs/localhost.crt"
+              value: "/tcp-proxy/localhost.crt"
             - name: SSL_KEY_PATH
-              value: "/certs/localhost.key"
+              value: "/tcp-proxy/localhost.key"
           volumeMounts:
-            - name: certs
-              mountPath: /certs
+            - name: proxy-vol
+              mountPath: /tcp-proxy
 
       volumes:
-        - name: certs
+        - name: proxy-vol
           configMap:
-            name: proxy-vol
+            name: proxy-config
 ---
 apiVersion: v1
 kind: Service
