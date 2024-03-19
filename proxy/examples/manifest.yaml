@@ -208,6 +208,23 @@ metadata:
   name: proxy-vol
   namespace: prj-mainnet-test
 ---
+apiVersion: v1
+data:
+  tiers.toml: |
+    [[tiers]]
+    name = "default"
+    max_connections = 1
+    max_bytes_per_minute = 7200
+
+    [[tiers]]
+    name = "0"
+    max_connections = 1
+    max_bytes_per_minute = 7200
+kind: ConfigMap
+metadata:
+  name: proxy-tiers
+  namespace: prj-mainnet-test
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

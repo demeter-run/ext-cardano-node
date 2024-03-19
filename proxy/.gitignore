@@ -4,3 +4,4 @@ cert
 docker-compose.yml
 .env*
 env-crd.yaml
+tiers.toml
