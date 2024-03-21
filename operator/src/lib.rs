@@ -18,6 +18,12 @@ pub enum Error {
 
     #[error("Bech32 Error: {0}")]
     Bech32Error(String),
+
+    #[error("Http Request error: {0}")]
+    HttpError(String),
+
+    #[error("Config Error: {0}")]
+    ConfigError(String),
 }
 impl Error {
     pub fn metric_label(&self) -> String {
@@ -50,7 +56,7 @@ impl From<bech32::primitives::hrp::Error> for Error {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct State {
     registry: Registry,
     pub metrics: Metrics,
@@ -64,6 +70,11 @@ impl State {
 
     pub fn metrics_collected(&self) -> Vec<prometheus::proto::MetricFamily> {
         self.registry.gather()
+    }
+}
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -89,8 +100,8 @@ impl Display for Network {
     }
 }
 
-pub use kube;
 pub use k8s_openapi;
+pub use kube;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
