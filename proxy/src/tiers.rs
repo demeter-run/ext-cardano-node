@@ -1,11 +1,9 @@
-use std::error::Error;
-use std::{fs, sync::Arc};
-
 use async_trait::async_trait;
-use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{PollWatcher, RecursiveMode, Watcher};
 use pingora::{server::ShutdownWatch, services::background::BackgroundService};
 use serde_json::Value;
-use tokio::runtime::{Handle, Runtime};
+use std::error::Error;
+use std::{fs, sync::Arc};
 use tracing::{error, info, warn};
 
 use crate::{config::Config, State, Tier};
@@ -42,16 +40,6 @@ impl TierBackgroundService {
     }
 }
 
-fn runtime_handle() -> Handle {
-    match Handle::try_current() {
-        Ok(h) => h,
-        Err(_) => {
-            let rt = Runtime::new().unwrap();
-            rt.handle().clone()
-        }
-    }
-}
-
 #[async_trait]
 impl BackgroundService for TierBackgroundService {
     async fn start(&self, mut _shutdown: ShutdownWatch) {
@@ -60,19 +48,13 @@ impl BackgroundService for TierBackgroundService {
             return;
         }
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<Event>(1);
+        let (tx, rx) = std::sync::mpsc::channel();
 
-        let watcher_result = RecommendedWatcher::new(
-            move |result: Result<Event, notify::Error>| {
-                let event = result.unwrap();
-                if event.kind.is_modify() {
-                    runtime_handle().block_on(async {
-                        tx.send(event).await.unwrap();
-                    });
-                }
-            },
-            notify::Config::default(),
-        );
+        let watcher_config = notify::Config::default()
+            .with_compare_contents(true)
+            .with_poll_interval(self.config.proxy_tiers_poll_interval);
+
+        let watcher_result = PollWatcher::new(tx, watcher_config);
         if let Err(err) = watcher_result {
             error!(error = err.to_string(), "error to watcher tier");
             return;
@@ -85,14 +67,17 @@ impl BackgroundService for TierBackgroundService {
             return;
         }
 
-        loop {
-            if rx.recv().await.is_some() {
-                if let Err(err) = self.update_tiers().await {
-                    error!(error = err.to_string(), "error to update tiers");
-                    continue;
-                }
+        for result in rx {
+            match result {
+                Ok(_event) => {
+                    if let Err(err) = self.update_tiers().await {
+                        error!(error = err.to_string(), "error to update tiers");
+                        continue;
+                    }
 
-                info!("tiers modified");
+                    info!("tiers modified");
+                }
+                Err(err) => error!(error = err.to_string(), "watch error"),
             }
         }
     }
