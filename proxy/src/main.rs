@@ -79,10 +79,9 @@ impl State {
         Self::default()
     }
 
-    pub async fn get_consumer(&self, network: &str, version: &str, key: &str) -> Option<Consumer> {
+    pub async fn get_consumer(&self, key: &str) -> Option<Consumer> {
         let consumers = self.consumers.read().await.clone();
-        let hash_key = format!("{}.{}.{}", network, version, key);
-        consumers.get(&hash_key).cloned()
+        consumers.get(key).cloned()
     }
 }
 
@@ -92,14 +91,25 @@ pub struct Consumer {
     port_name: String,
     tier: String,
     key: String,
+    network: String,
+    version: String,
 }
 impl Consumer {
-    pub fn new(namespace: String, port_name: String, tier: String, key: String) -> Self {
+    pub fn new(
+        namespace: String,
+        port_name: String,
+        tier: String,
+        key: String,
+        network: String,
+        version: String,
+    ) -> Self {
         Self {
             namespace,
             port_name,
             tier,
             key,
+            network,
+            version,
         }
     }
 }

@@ -46,7 +46,7 @@ impl ProxyApp {
     pub fn new(config: Arc<Config>, state: Arc<State>) -> Self {
         ProxyApp {
             client_connector: TransportConnector::new(None),
-            host_regex: Regex::new(r"(dmtr_[\w\d-]+)\.([\w]+)-([\w\d]+).+").unwrap(),
+            host_regex: Regex::new(r"(dmtr_[\w\d-]+)\..+").unwrap(),
             config,
             state,
         }
@@ -197,17 +197,12 @@ impl ServerApp for ProxyApp {
 
         let token = captures.get(1)?.as_str().to_string();
 
-        let network = captures.get(2)?.as_str().to_string();
-        let version = captures.get(3)?.as_str().to_string();
-        let namespace = self.config.proxy_namespace.clone();
-
-        let consumer = self.state.get_consumer(&network, &version, &token).await?;
-
+        let consumer = self.state.get_consumer(&token).await?;
         let instance = format!(
-            "node-{network}-{version}.{}:{}",
-            self.config.node_dns, self.config.node_port
+            "node-{}-{}.{}:{}",
+            consumer.network, consumer.version, self.config.node_dns, self.config.node_port
         );
-
+        let namespace = self.config.proxy_namespace.clone();
         let context = Context::new(&consumer, &instance, &namespace);
 
         let lookup_result = lookup_host(&instance).await;
