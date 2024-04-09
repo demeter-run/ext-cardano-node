@@ -1,8 +1,4 @@
-use std::fmt::{self, Display, Formatter};
-
 use prometheus::Registry;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -18,6 +14,12 @@ pub enum Error {
 
     #[error("Bech32 Error: {0}")]
     Bech32Error(String),
+
+    #[error("Http Request error: {0}")]
+    HttpError(String),
+
+    #[error("Config Error: {0}")]
+    ConfigError(String),
 }
 impl Error {
     pub fn metric_label(&self) -> String {
@@ -50,7 +52,7 @@ impl From<bech32::primitives::hrp::Error> for Error {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct State {
     registry: Registry,
     pub metrics: Metrics,
@@ -66,29 +68,13 @@ impl State {
         self.registry.gather()
     }
 }
-
-#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
-pub enum Network {
-    #[serde(rename = "mainnet")]
-    Mainnet,
-    #[serde(rename = "preprod")]
-    Preprod,
-    #[serde(rename = "preview")]
-    Preview,
-    #[serde(rename = "sanchonet")]
-    Sanchonet,
-}
-impl Display for Network {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Network::Mainnet => write!(f, "mainnet"),
-            Network::Preprod => write!(f, "preprod"),
-            Network::Preview => write!(f, "preview"),
-            Network::Sanchonet => write!(f, "sanchonet"),
-        }
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
+pub use k8s_openapi;
 pub use kube;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

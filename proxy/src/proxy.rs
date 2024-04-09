@@ -1,41 +1,177 @@
-use std::{net::SocketAddr, sync::Arc};
-
 use async_trait::async_trait;
+use futures_util::future::join_all;
+use leaky_bucket::RateLimiter;
 use pingora::{
     apps::ServerApp, connectors::TransportConnector, protocols::Stream, server::ShutdownWatch,
-    tls::ssl::NameType, upstreams::peer::BasicPeer,
+    tls::ssl::NameType, upstreams::peer::BasicPeer, Error, Result,
 };
 use regex::Regex;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::lookup_host,
     select,
-    sync::RwLock,
 };
-use tracing::error;
+use tracing::{error, info};
 
-use crate::{config::Config, State};
+use crate::{config::Config, Consumer, State, Tier};
+
+struct Context {
+    consumer: Consumer,
+    namespace: String,
+    instance: String,
+}
+impl Context {
+    pub fn new(consumer: &Consumer, instance: &str, namespace: &str) -> Self {
+        Self {
+            consumer: consumer.clone(),
+            namespace: namespace.into(),
+            instance: instance.into(),
+        }
+    }
+}
+
+enum DuplexEvent {
+    ClientRead(usize),
+    InstanceRead(usize),
+}
 
 pub struct ProxyApp {
     client_connector: TransportConnector,
     host_regex: Regex,
-    state: Arc<RwLock<State>>,
+    state: Arc<State>,
     config: Arc<Config>,
 }
-
-enum DuplexEvent {
-    DownstreamRead(usize),
-    UpstreamRead(usize),
-}
-
 impl ProxyApp {
-    pub fn new(config: Arc<Config>, state: Arc<RwLock<State>>) -> Self {
+    pub fn new(config: Arc<Config>, state: Arc<State>) -> Self {
         ProxyApp {
             client_connector: TransportConnector::new(None),
-            host_regex: Regex::new(r"(dmtr_[\w\d-]+)\.([\w]+)-([\w\d]+).+").unwrap(),
+            host_regex: Regex::new(r"(dmtr_[\w\d-]+)\..+").unwrap(),
             config,
             state,
         }
+    }
+
+    async fn duplex(
+        &self,
+        mut io_client: Stream,
+        mut io_instance: Stream,
+        state: Arc<State>,
+        ctx: Context,
+    ) -> Result<()> {
+        state
+            .metrics
+            .inc_total_connections(&ctx.consumer, &ctx.namespace, &ctx.instance);
+
+        let mut io_client_buf = [0; 1024];
+        let mut io_instance_buf = [0; 1024];
+
+        loop {
+            let event: DuplexEvent;
+
+            select! {
+                n = io_client.read(&mut io_client_buf) => {
+                    match n {
+                        Ok(b) => event = DuplexEvent::ClientRead(b),
+                        Err(err) => {
+                            error!(error = err.to_string(), "client read error");
+                            event = DuplexEvent::ClientRead(0);
+                        },
+                    }
+                },
+                n = io_instance.read(&mut io_instance_buf) => {
+                    match n {
+                        Ok(b) => event = DuplexEvent::InstanceRead(b),
+                        Err(err) => {
+                            error!(error = err.to_string(), "instance read error");
+                            event = DuplexEvent::InstanceRead(0);
+                        },
+                    }
+                },
+            }
+
+            match event {
+                DuplexEvent::ClientRead(0) | DuplexEvent::InstanceRead(0) => {
+                    info!("client disconnected");
+                    state.metrics.dec_total_connections(
+                        &ctx.consumer,
+                        &ctx.namespace,
+                        &ctx.instance,
+                    );
+                    return Ok(());
+                }
+                DuplexEvent::ClientRead(bytes) => {
+                    state.metrics.count_total_packages_bytes(
+                        &ctx.consumer,
+                        &ctx.namespace,
+                        &ctx.instance,
+                        bytes,
+                    );
+
+                    let _ = io_instance.write_all(&io_client_buf[0..bytes]).await;
+                    let _ = io_instance.flush().await;
+                }
+                DuplexEvent::InstanceRead(bytes) => {
+                    self.limiter(&ctx.consumer).await?;
+
+                    state.metrics.count_total_packages_bytes(
+                        &ctx.consumer,
+                        &ctx.namespace,
+                        &ctx.instance,
+                        bytes,
+                    );
+
+                    let _ = io_client.write_all(&io_instance_buf[0..bytes]).await;
+                    let _ = io_client.flush().await;
+                }
+            }
+        }
+    }
+
+    async fn has_limiter(&self, consumer: &Consumer) -> bool {
+        let rate_limiter_map = self.state.limiter.read().await;
+        rate_limiter_map.get(&consumer.key).is_some()
+    }
+
+    async fn add_limiter(&self, consumer: &Consumer, tier: &Tier) {
+        let rates = tier
+            .rates
+            .iter()
+            .map(|r| {
+                Arc::new(
+                    RateLimiter::builder()
+                        .initial(r.limit)
+                        .interval(r.interval)
+                        .build(),
+                )
+            })
+            .collect();
+
+        self.state
+            .limiter
+            .write()
+            .await
+            .insert(consumer.key.clone(), rates);
+    }
+
+    async fn limiter(&self, consumer: &Consumer) -> Result<()> {
+        let tiers = self.state.tiers.read().await.clone();
+        let tier = tiers.get(&consumer.tier);
+        if tier.is_none() {
+            return Err(Error::new(pingora::ErrorType::AcceptError));
+        }
+        let tier = tier.unwrap();
+
+        if !self.has_limiter(consumer).await {
+            self.add_limiter(consumer, tier).await;
+        }
+
+        let rate_limiter_map = self.state.limiter.read().await.clone();
+        let rates = rate_limiter_map.get(&consumer.key).unwrap();
+
+        join_all(rates.iter().map(|r| async { r.acquire_one().await })).await;
+
+        Ok(())
     }
 }
 
@@ -43,12 +179,10 @@ impl ProxyApp {
 impl ServerApp for ProxyApp {
     async fn process_new(
         self: &Arc<Self>,
-        mut io_server: Stream,
+        io_client: Stream,
         _shutdown: &ShutdownWatch,
     ) -> Option<Stream> {
-        let state = self.state.read().await.clone();
-
-        let hostname = io_server.get_ssl()?.servername(NameType::HOST_NAME);
+        let hostname = io_client.get_ssl()?.servername(NameType::HOST_NAME);
         if hostname.is_none() {
             error!("hostname is not present in the certificate");
             return None;
@@ -62,16 +196,14 @@ impl ServerApp for ProxyApp {
         let captures = captures_result?;
 
         let token = captures.get(1)?.as_str().to_string();
-        let network = captures.get(2)?.as_str().to_string();
-        let version = captures.get(3)?.as_str().to_string();
-        let namespace = self.config.proxy_namespace.clone();
-        
-        let consumer = state.get_consumer(&network, &version, &token)?;
 
+        let consumer = self.state.get_consumer(&token).await?;
         let instance = format!(
-            "node-{network}-{version}.{}:{}",
-            self.config.node_dns, self.config.node_port
+            "node-{}-{}.{}:{}",
+            consumer.network, consumer.version, self.config.node_dns, self.config.node_port
         );
+        let namespace = self.config.proxy_namespace.clone();
+        let context = Context::new(&consumer, &instance, &namespace);
 
         let lookup_result = lookup_host(&instance).await;
         if let Err(err) = lookup_result {
@@ -83,63 +215,21 @@ impl ServerApp for ProxyApp {
 
         let proxy_to = BasicPeer::new(&node_addr.to_string());
 
-        let io_client = self.client_connector.new_stream(&proxy_to).await;
+        let io_instance = self.client_connector.new_stream(&proxy_to).await;
 
-        match io_client {
-            Ok(mut io_client) => {
-                let mut upstream_buf = [0; 1024];
-                let mut downstream_buf = [0; 1024];
-
-                loop {
-                    let downstream_read = io_server.read(&mut upstream_buf);
-                    let upstream_read = io_client.read(&mut downstream_buf);
-                    let event: DuplexEvent;
-
-                    select! {
-                        n = downstream_read => {
-                            if let Err(err) = &n {
-                                error!(error=err.to_string(), "Downstream error");
-                                return None;
-                            }
-                            event = DuplexEvent::DownstreamRead(n.unwrap())
-                        },
-                        n = upstream_read => {
-                            if let Err(err) = &n {
-                                error!(error=err.to_string(), "Upstream error");
-                                return None;
-                            }
-                            event = DuplexEvent::UpstreamRead(n.unwrap())
-                        },
-                    }
-
-                    match event {
-                        DuplexEvent::DownstreamRead(0) => {
-                            return None;
-                        }
-                        DuplexEvent::UpstreamRead(0) => {
-                            return None;
-                        }
-                        DuplexEvent::DownstreamRead(n) => {
-                            state
-                                .metrics
-                                .count_total_packages_bytes(&consumer, &namespace, &instance, n);
-
-                            io_client.write_all(&upstream_buf[0..n]).await.unwrap();
-                            io_client.flush().await.unwrap();
-                        }
-                        DuplexEvent::UpstreamRead(n) => {
-                            state
-                                .metrics
-                                .count_total_packages_bytes(&consumer, &namespace, &instance, n);
-
-                            io_server.write_all(&downstream_buf[0..n]).await.unwrap();
-                            io_server.flush().await.unwrap();
-                        }
-                    }
+        match io_instance {
+            Ok(io_instance) => {
+                if let Err(err) = self
+                    .duplex(io_client, io_instance, self.state.clone(), context)
+                    .await
+                {
+                    error!(error = err.to_string(), "proxy duplex error");
                 }
+
+                None
             }
             Err(e) => {
-                error!("failed to create client session: {}", e);
+                error!("failed to create instance session: {}", e);
                 None
             }
         }

@@ -14,17 +14,16 @@ use operator::{
     CardanoNodePort,
 };
 use pingora::{server::ShutdownWatch, services::background::BackgroundService};
-use tokio::{pin, sync::RwLock};
+use tokio::pin;
 use tracing::error;
 
 use crate::{Consumer, State};
 
-#[derive(Debug)]
 pub struct AuthBackgroundService {
-    state: Arc<RwLock<State>>,
+    state: Arc<State>,
 }
 impl AuthBackgroundService {
-    pub fn new(state: Arc<RwLock<State>>) -> Self {
+    pub fn new(state: Arc<State>) -> Self {
         Self { state }
     }
 
@@ -43,17 +42,19 @@ impl AuthBackgroundService {
             if crd.status.is_some() {
                 let network = crd.spec.network.to_string();
                 let version = crd.spec.version.clone();
-                let auth_token = crd.status.as_ref().unwrap().auth_token.clone();
+                let tier = crd.spec.throughput_tier.to_string();
+                let key = crd.status.as_ref().unwrap().auth_token.clone();
                 let namespace = crd.metadata.namespace.as_ref().unwrap().clone();
                 let port_name = crd.name_any();
 
-                let hash_key = format!("{}.{}.{}", network, version, auth_token);
-                let consumer = Consumer::new(namespace, port_name);
+                let consumer =
+                    Consumer::new(namespace, port_name, tier, key.clone(), network, version);
 
-                consumers.insert(hash_key, consumer);
+                consumers.insert(key, consumer);
             }
         }
-        self.state.write().await.consumers = consumers;
+
+        *self.state.consumers.write().await = consumers;
     }
 }
 

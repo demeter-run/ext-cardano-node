@@ -1,6 +1,0 @@
-/target
-iognode
-cert
-docker-compose.yml
-.env*
-env-crd.yaml

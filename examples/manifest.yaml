@@ -10,17 +10,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: kube-rs
 rules:
-  - apiGroups: ["demeter.run"]
-    resources:
-      [
-        "cardanonodeports",
-        "cardanonodeports/status",
-        "cardanonodeports/finalizers",
-      ]
-    verbs: ["get", "list", "watch", "patch", "update"]
-  - apiGroups: ["events.k8s.io"]
-    resources: ["events"]
-    verbs: ["create"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
 ---
 # Scoped service account
 apiVersion: v1
@@ -97,6 +92,9 @@ data:
       - job_name: proxy
         static_configs:
           - targets: ["proxy:9187"]
+      - job_name: operator
+        static_configs:
+          - targets: ["operator:9187"]
 kind: ConfigMap
 metadata:
   name: prometheus-vol
@@ -203,9 +201,21 @@ data:
     1+pvxRA1z1SjK0UtkVc280pRwNZjue/GtNnc0KgkqN3guJ5WeDumBxmStJ5KGNYG
     T4jj2oxkaijVhOEOzUkq4w==
     -----END PRIVATE KEY-----
+  tiers.toml: |
+    [[tiers]]
+    name = "0"
+    [[tiers.rates]]
+    interval = "1s"
+    limit = 10
+
+    [[tiers]]
+    name = "1"
+    [[tiers.rates]]
+    interval = "1s"
+    limit = 100
 kind: ConfigMap
 metadata:
-  name: proxy-vol
+  name: proxy-config
   namespace: prj-mainnet-test
 ---
 apiVersion: apps/v1
@@ -233,24 +243,28 @@ spec:
           env:
             - name: PROXY_ADDR
               value: "0.0.0.0:80"
+            - name: PROXY_NAMESPACE
+              value: "prj-mainnet-test"
             - name: PROMETHEUS_ADDR
               value: "0.0.0.0:9187"
+            - name: PROXY_TIERS_PATH
+              value: "/tcp-proxy/tiers.toml"
             - name: NODE_PORT
               value: "80"
             - name: NODE_DNS
               value: "prj-mainnet-test.svc.cluster.local"
             - name: SSL_CRT_PATH
-              value: "/certs/localhost.crt"
+              value: "/tcp-proxy/localhost.crt"
             - name: SSL_KEY_PATH
-              value: "/certs/localhost.key"
+              value: "/tcp-proxy/localhost.key"
           volumeMounts:
-            - name: certs
-              mountPath: /certs
+            - name: proxy-vol
+              mountPath: /tcp-proxy
 
       volumes:
-        - name: certs
+        - name: proxy-vol
           configMap:
-            name: proxy-vol
+            name: proxy-config
 ---
 apiVersion: v1
 kind: Service
@@ -299,6 +313,12 @@ spec:
           env:
             - name: ADDR
               value: "0.0.0.0:9187"
+            - name: METRICS_DELAY
+              value: "60"
+            - name: PROMETHEUS_URL
+              value: "http://prometheus/api/v1"
+            - name: DCU_PER_PACKAGE
+              value: "preview=5,preprod=5,mainnet=5"
 ---
 apiVersion: v1
 kind: Service
@@ -313,7 +333,7 @@ spec:
   type: ClusterIP
   ports:
     - name: operator
-      port: 80
+      port: 9187
       targetPort: 9187
       protocol: TCP
 ---

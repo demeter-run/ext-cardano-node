@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tracing::{error, info};
 
-use crate::{build_api_key, build_hostname, patch_resource_status, Error, Metrics, Network, Result, State};
+use crate::{build_api_key, build_hostname, patch_resource_status, Error, Metrics, Result, State};
 
 pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 
@@ -24,13 +24,13 @@ pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
 #[kube(printcolumn = r#"
         {"name": "Network", "jsonPath": ".spec.network", "type": "string"},
         {"name": "Version", "jsonPath": ".spec.version", "type": "string"},
+        {"name": "Throughput Tier", "jsonPath": ".spec.throughputTier", "type": "string"},
         {"name": "Authenticated Endpoint", "jsonPath": ".status.authenticatedEndpoint", "type": "string"},
-        {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"},
-        {"name": "Throughput Tier", "jsonPath": ".status.throughputTier", "type": "string"}
+        {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"}
     "#)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortSpec {
-    pub network: Network,
+    pub network: String,
     pub version: String,
     pub throughput_tier: String,
 }

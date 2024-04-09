@@ -8,7 +8,7 @@ use kube::{
 };
 use serde_json::json;
 
-use crate::{get_config, CardanoNodePort, Error, Network};
+use crate::{get_config, CardanoNodePort, Error};
 
 pub async fn patch_resource_status(
     client: Client,
@@ -26,7 +26,7 @@ pub async fn patch_resource_status(
     Ok(())
 }
 
-pub fn build_hostname(network: &Network, version: &str, key: &str) -> String {
+pub fn build_hostname(network: &str, version: &str, key: &str) -> String {
     let config = get_config();
     let extension_name = &config.extension_name;
     let dns_zone = &config.dns_zone;
