@@ -12,7 +12,7 @@ resource "kubernetes_deployment_v1" "node_proxy" {
   depends_on       = [kubernetes_manifest.certificate_cluster_wildcard_tls]
 
   metadata {
-    name      = local.role
+    name      = local.name
     namespace = var.namespace
     labels = {
       role = local.role
@@ -27,7 +27,7 @@ resource "kubernetes_deployment_v1" "node_proxy" {
     }
     template {
       metadata {
-        name = local.role
+        name = local.name
         labels = {
           role = local.role
         }
@@ -77,13 +77,13 @@ resource "kubernetes_deployment_v1" "node_proxy" {
           }
 
           env {
-            name  = "NODE_DNS"
-            value = var.node_dns
+            name  = "NODE_PORT"
+            value = var.node_port
           }
 
           env {
-            name  = "NODE_PORT"
-            value = var.node_port
+            name  = "NODE_DNS"
+            value = "${var.namespace}.svc.cluster.local"
           }
 
           env {
@@ -96,9 +96,24 @@ resource "kubernetes_deployment_v1" "node_proxy" {
             value = "/certs/tls.key"
           }
 
+          env {
+            name  = "PROXY_TIERS_PATH"
+            value = "/configs/tiers.toml"
+          }
+
           volume_mount {
             mount_path = "/certs"
             name       = "certs"
+          }
+
+          volume_mount {
+            mount_path = "/configs"
+            name       = "configs"
+          }
+
+          volume_mount {
+            name       = "ephemeral"
+            mount_path = "/cache"
           }
         }
 
@@ -106,6 +121,13 @@ resource "kubernetes_deployment_v1" "node_proxy" {
           name = "certs"
           secret {
             secret_name = local.cert_secret_name
+          }
+        }
+
+        volume {
+          name = "configs"
+          config_map {
+            name = kubernetes_config_map.proxy.metadata.0.name
           }
         }
 

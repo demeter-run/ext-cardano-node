@@ -6,7 +6,7 @@ variable "api_key_salt" {
   type = string
 }
 
-variable "ingress_class" {
+variable "extension_name" {
   type = string
 }
 

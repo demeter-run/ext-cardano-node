@@ -52,8 +52,8 @@ resource "kubernetes_deployment_v1" "operator" {
           }
 
           env {
-            name  = "INGRESS_CLASS"
-            value = var.ingress_class
+            name  = "EXTENSION_NAME"
+            value = var.extension_name
           }
 
           env {

@@ -1,4 +1,4 @@
-resource "kubernetes_manifest" "operator_monitor" {
+resource "kubernetes_manifest" "proxy_monitor" {
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
     kind       = "PodMonitor"

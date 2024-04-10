@@ -1,3 +1,13 @@
+locals {
+  name = "proxy"
+  role = "proxy"
+
+  prometheus_port = 9187
+  prometheus_addr = "0.0.0.0:${local.prometheus_port}"
+  proxy_port      = 8080
+  proxy_addr      = "0.0.0.0:${local.proxy_port}"
+}
+
 variable "namespace" {
   type = string
 }
@@ -14,32 +24,38 @@ variable "proxy_image_tag" {
 variable "resources" {
   type = object({
     limits = object({
-      cpu    = string
-      memory = string
+      cpu               = string
+      memory            = string
+      ephemeral_storage = string
     })
     requests = object({
-      cpu    = string
-      memory = string
+      cpu               = string
+      memory            = string
+      ephemeral_storage = string
     })
   })
   default = {
     limits : {
       cpu : "50m",
       memory : "250Mi"
+      ephemeral_storage : "4Gi"
     }
     requests : {
       cpu : "50m",
       memory : "250Mi"
+      ephemeral_storage : "4Gi"
     }
   }
 }
 
-variable "node_dns" {
-  type = number
+variable "node_port" {
+  type    = number
+  default = 3307
 }
 
-variable "node_port" {
-  type = number
+variable "node_dns" {
+  type    = string
+  default = "ftr-nodes-v2.svc.cluster.local"
 }
 
 variable "extension_name" {
@@ -47,10 +63,6 @@ variable "extension_name" {
 }
 
 variable "dns_zone" {
-  type = string
-}
-
-variable "networks" {
-  type    = list(string)
-  default = ["mainnet", "preprod", "preview"]
+  type    = string
+  default = "demeter.run"
 }

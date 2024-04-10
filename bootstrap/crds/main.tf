@@ -52,12 +52,6 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                 "spec" = {
                   "properties" = {
                     "network" = {
-                      "enum" = [
-                        "mainnet",
-                        "preprod",
-                        "preview",
-                        "sanchonet",
-                      ]
                       "type" = "string"
                     }
                     "throughputTier" = {

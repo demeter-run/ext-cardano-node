@@ -1,13 +1,13 @@
 resource "kubernetes_service_v1" "proxy_service" {
   metadata {
-    name      = local.role
+    name      = local.name
     namespace = var.namespace
     annotations = {
       "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" : "instance"
       "service.beta.kubernetes.io/aws-load-balancer-scheme" : "internet-facing"
       "service.beta.kubernetes.io/aws-load-balancer-type" : "external"
-      # "service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol" : "HTTPS"  # TODO: Set correct health endpoint
-      # "service.beta.kubernetes.io/aws-load-balancer-healthcheck-path" : "/healthz"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol" : "HTTP"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-path" : "/health"
     }
   }
 
@@ -19,8 +19,15 @@ resource "kubernetes_service_v1" "proxy_service" {
 
     port {
       name        = "proxy"
-      port        = 443
+      port        = 9443
       target_port = local.proxy_port
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "health"
+      port        = 80
+      target_port = local.prometheus_port
       protocol    = "TCP"
     }
 
