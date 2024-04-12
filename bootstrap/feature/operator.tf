@@ -61,13 +61,24 @@ resource "kubernetes_deployment_v1" "operator" {
             value = var.dns_zone
           }
 
+          env {
+            name  = "METRICS_DELAY"
+            value = var.metrics_delay
+          }
+
+          env {
+            name  = "DCU_PER_PACKAGE"
+            value = "mainnet=${var.dcu_per_package["mainnet"]},preprod=${var.dcu_per_package["preprod"]},preview=${var.dcu_per_package["preview"]},sanchonet=${var.dcu_per_package["sanchonet"]},vector-testnet=${var.dcu_per_package["vector-testnet"]}"
+          }
+
           resources {
             limits = {
-              memory = "512Mi"
+              cpu    = var.resources.limits.cpu
+              memory = var.resources.limits.memory
             }
             requests = {
-              cpu    = "50m"
-              memory = "512Mi"
+              cpu    = var.resources.requests.cpu
+              memory = var.resources.requests.memory
             }
           }
 
