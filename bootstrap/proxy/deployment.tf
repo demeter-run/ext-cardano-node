@@ -110,11 +110,6 @@ resource "kubernetes_deployment_v1" "node_proxy" {
             mount_path = "/configs"
             name       = "configs"
           }
-
-          volume_mount {
-            name       = "ephemeral"
-            mount_path = "/cache"
-          }
         }
 
         volume {
