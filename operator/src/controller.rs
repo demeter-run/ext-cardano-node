@@ -25,7 +25,7 @@ pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
         {"name": "Network", "jsonPath": ".spec.network", "type": "string"},
         {"name": "Version", "jsonPath": ".spec.version", "type": "string"},
         {"name": "Throughput Tier", "jsonPath": ".spec.throughputTier", "type": "string"},
-        {"name": "Authenticated Endpoint", "jsonPath": ".status.authenticatedEndpoint", "type": "string"},
+        {"name": "Authenticated Endpoint URL", "jsonPath": ".status.authenticatedEndpointUrl", "type": "string"},
         {"name": "Auth Token", "jsonPath": ".status.authToken", "type": "string"}
     "#)]
 #[serde(rename_all = "camelCase")]
@@ -38,7 +38,7 @@ pub struct CardanoNodePortSpec {
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CardanoNodePortStatus {
-    pub authenticated_endpoint: String,
+    pub authenticated_endpoint_url: String,
     pub auth_token: String,
 }
 
@@ -56,7 +56,7 @@ async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Actio
     let key = build_api_key(&crd).await?;
 
     let status = CardanoNodePortStatus {
-        authenticated_endpoint: build_hostname(&crd.spec.network, &crd.spec.version, &key),
+        authenticated_endpoint_url: build_hostname(&crd.spec.network, &crd.spec.version, &key),
         auth_token: key,
     };
 

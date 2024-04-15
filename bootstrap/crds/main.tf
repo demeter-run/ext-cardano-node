@@ -34,8 +34,8 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
               "type" = "string"
             },
             {
-              "jsonPath" = ".status.authenticatedEndpoint"
-              "name" = "Authenticated Endpoint"
+              "jsonPath" = ".status.authenticatedEndpointUrl"
+              "name" = "Authenticated Endpoint URL"
               "type" = "string"
             },
             {
@@ -52,12 +52,6 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                 "spec" = {
                   "properties" = {
                     "network" = {
-                      "enum" = [
-                        "mainnet",
-                        "preprod",
-                        "preview",
-                        "sanchonet",
-                      ]
                       "type" = "string"
                     }
                     "throughputTier" = {
@@ -80,13 +74,13 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
                     "authToken" = {
                       "type" = "string"
                     }
-                    "authenticatedEndpoint" = {
+                    "authenticatedEndpointUrl" = {
                       "type" = "string"
                     }
                   }
                   "required" = [
                     "authToken",
-                    "authenticatedEndpoint",
+                    "authenticatedEndpointUrl",
                   ]
                   "type" = "object"
                 }
