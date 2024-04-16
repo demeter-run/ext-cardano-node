@@ -26,29 +26,31 @@ pub async fn patch_resource_status(
     Ok(())
 }
 
-pub fn build_hostname(network: &str, version: &str, key: &str) -> String {
+pub fn build_hostname(key: &str) -> String {
     let config = get_config();
     let extension_name = &config.extension_name;
     let dns_zone = &config.dns_zone;
 
-    format!("{key}.{network}-{version}.{extension_name}.{dns_zone}")
+    format!("{key}.{extension_name}.{dns_zone}")
 }
 
 pub async fn build_api_key(crd: &CardanoNodePort) -> Result<String, Error> {
     let namespace = crd.namespace().unwrap();
     let name = format!("cardano-node-auth-{}", &crd.name_any());
 
+    let network = &crd.spec.network;
+    let version = &crd.spec.version;
     let password = format!("{}{}", name, namespace).as_bytes().to_vec();
 
     let config = get_config();
     let salt = config.api_key_salt.as_bytes();
 
-    let mut output = vec![0; 16];
+    let mut output = vec![0; 8];
 
     let argon2 = Argon2::default();
     argon2.hash_password_into(password.as_slice(), salt, &mut output)?;
 
-    let hrp = Hrp::parse("dmtr_cnode")?;
+    let hrp = Hrp::parse(&format!("dmtr_cnode_{version}_{network}_"))?;
     let with_bech = bech32::encode::<Bech32m>(hrp, output.as_slice())?;
 
     Ok(with_bech)
