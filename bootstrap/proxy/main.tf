@@ -1,13 +1,3 @@
-locals {
-  name = "proxy"
-  role = "proxy"
-
-  prometheus_port = 9187
-  prometheus_addr = "0.0.0.0:${local.prometheus_port}"
-  proxy_port      = 8080
-  proxy_addr      = "0.0.0.0:${local.proxy_port}"
-}
-
 variable "namespace" {
   type = string
 }
