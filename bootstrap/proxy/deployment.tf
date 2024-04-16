@@ -1,4 +1,5 @@
 locals {
+  name = "proxy"
   role = "proxy"
 
   prometheus_port = 9187

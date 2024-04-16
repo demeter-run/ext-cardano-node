@@ -8,10 +8,14 @@ resource "kubernetes_manifest" "customresourcedefinition_cardanonodeports_demete
     "spec" = {
       "group" = "demeter.run"
       "names" = {
-        "categories" = []
+        "categories" = [
+          "demeter-port",
+        ]
         "kind" = "CardanoNodePort"
         "plural" = "cardanonodeports"
-        "shortNames" = []
+        "shortNames" = [
+          "cnpts",
+        ]
         "singular" = "cardanonodeport"
       }
       "scope" = "Namespaced"
