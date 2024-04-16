@@ -4,7 +4,7 @@ resource "kubernetes_cluster_role" "cluster_role" {
   }
 
   rule {
-    api_groups = ["", "demeter.run", "networking.k8s.io", "gateway.networking.k8s.io", "configuration.konghq.com"]
+    api_groups = ["", "demeter.run"]
     resources  = ["*"]
     verbs      = ["*"]
   }

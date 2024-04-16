@@ -83,7 +83,7 @@ resource "kubernetes_deployment_v1" "node_proxy" {
 
           env {
             name  = "NODE_DNS"
-            value = "${var.namespace}.svc.cluster.local"
+            value = "${var.instances_namespace}.svc.cluster.local"
           }
 
           env {

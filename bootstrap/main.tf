@@ -18,12 +18,13 @@ module "node_v1_feature" {
 }
 
 module "node_v1_proxy" {
-  depends_on      = [kubernetes_namespace.namespace]
-  source          = "./proxy"
-  namespace       = var.namespace
-  replicas        = var.proxy_replicas
-  extension_name  = var.extension_name
-  dns_zone        = var.dns_zone
-  proxy_image_tag = var.proxy_image_tag
-  resources       = var.proxy_resources
+  depends_on          = [kubernetes_namespace.namespace]
+  source              = "./proxy"
+  namespace           = var.namespace
+  replicas            = var.proxy_replicas
+  extension_name      = var.extension_name
+  dns_zone            = var.dns_zone
+  proxy_image_tag     = var.proxy_image_tag
+  resources           = var.proxy_resources
+  instances_namespace = var.instances_namespace
 }

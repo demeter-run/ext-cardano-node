@@ -21,6 +21,10 @@ variable "proxy_image_tag" {
   type = string
 }
 
+variable "instances_namespace" {
+  type = string
+}
+
 variable "resources" {
   type = object({
     limits = object({

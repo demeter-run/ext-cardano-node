@@ -9,7 +9,11 @@ variable "dns_zone" {
 
 variable "extension_name" {
   type    = string
-  default = "blockfrost-m1"
+  default = "nodes-m1"
+}
+
+variable "instances_namespace" {
+  type = string
 }
 
 // Operator
