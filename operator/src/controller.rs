@@ -18,6 +18,8 @@ pub static CARDANO_NODE_PORT_FINALIZER: &str = "cardanonodeports.demeter.run";
     kind = "CardanoNodePort",
     group = "demeter.run",
     version = "v1alpha1",
+    shortname = "cnpts",
+    category = "demeter-port",
     namespaced
 )]
 #[kube(status = "CardanoNodePortStatus")]
