@@ -42,6 +42,11 @@ resource "kubernetes_deployment_v1" "operator" {
           }
 
           env {
+            name  = "PROMETHEUS_URL"
+            value = "http://prometheus-operated.demeter-system.svc.cluster.local:9090/api/v1"
+          }
+
+          env {
             name  = "K8S_IN_CLUSTER"
             value = "true"
           }

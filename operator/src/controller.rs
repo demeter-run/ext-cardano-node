@@ -58,7 +58,7 @@ async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Actio
     let key = build_api_key(&crd).await?;
 
     let status = CardanoNodePortStatus {
-        authenticated_endpoint_url: build_hostname(&crd.spec.network, &crd.spec.version, &key),
+        authenticated_endpoint_url: build_hostname(&key),
         auth_token: key,
     };
 
