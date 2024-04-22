@@ -1,4 +1,6 @@
-// numbers here should consider number of proxy replicas
+// Numbers here should consider number of proxy replicas. Also, they are
+// expressed in MB per second and multiplied for simplicity.
+// Example: 1Mb/s => 1 * 1024 * 60 for the 1m limiter.
 locals {
   tiers = [
     {
@@ -6,27 +8,52 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(120 / var.replicas)
+          "limit"    = floor(1 * 1024 * 60 / var.replicas)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(50000 / var.replicas)
+          "limit"    = floor(1 * 1024 * 60 * 60 * 24 / var.replicas)
         }
       ]
     },
     {
       "name" = "1",
-      "rates" = [{
-        "interval" = "1m",
-        "limit"    = 500
-      }]
+      "rates" = [
+        {
+          "interval" = "1m",
+          "limit"    = floor(5 * 1024 * 60 / var.replicas)
+        },
+        {
+          "interval" = "1d",
+          "limit"    = floor(5 * 1024 * 60 * 60 * 24 / var.replicas)
+        }
+      ]
     },
     {
       "name" = "2",
-      "rates" = [{
-        "interval" = "1m",
-        "limit"    = 1000
-      }]
+      "rates" = [
+        {
+          "interval" = "1m",
+          "limit"    = floor(50 * 1024 * 60 / var.replicas)
+        },
+        {
+          "interval" = "1d",
+          "limit"    = floor(50 * 1024 * 60 * 60 * 24 / var.replicas)
+        }
+      ]
+    },
+    {
+      "name" = "3",
+      "rates" = [
+        {
+          "interval" = "1m",
+          "limit"    = floor(100 * 1024 * 60 / var.replicas)
+        },
+        {
+          "interval" = "1d",
+          "limit"    = floor(100 * 1024 * 60 * 60 * 24 / var.replicas)
+        }
+      ]
     }
   ]
 }
