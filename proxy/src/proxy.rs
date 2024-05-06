@@ -142,6 +142,7 @@ impl ProxyApp {
                     RateLimiter::builder()
                         .initial(r.limit)
                         .interval(r.interval)
+                        .refill(r.limit)
                         .build(),
                 )
             })
