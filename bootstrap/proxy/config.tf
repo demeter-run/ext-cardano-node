@@ -8,11 +8,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(1 * 1024 * 60 / var.replicas)
+          "limit"    = floor(1 * 1024 * 1024 * 60 / var.replicas)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(1 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(1 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
         }
       ]
     },
@@ -21,11 +21,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(5 * 1024 * 60 / var.replicas)
+          "limit"    = floor(5 * 1024 * 1024 * 60 / var.replicas)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(5 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(5 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
         }
       ]
     },
@@ -34,11 +34,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(50 * 1024 * 60 / var.replicas)
+          "limit"    = floor(50 * 1024 * 1024 * 60 / var.replicas)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(50 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(50 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
         }
       ]
     },
@@ -47,11 +47,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(100 * 1024 * 60 / var.replicas)
+          "limit"    = floor(100 * 1024 * 1024 * 60 / var.replicas)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(100 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(100 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
         }
       ]
     }

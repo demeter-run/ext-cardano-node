@@ -112,7 +112,7 @@ impl ProxyApp {
                     let _ = io_instance.flush().await;
                 }
                 DuplexEvent::InstanceRead(bytes) => {
-                    self.limiter(&ctx.consumer).await?;
+                    self.limiter(&ctx.consumer, bytes).await?;
 
                     state.metrics.count_total_packages_bytes(
                         &ctx.consumer,
@@ -155,7 +155,7 @@ impl ProxyApp {
             .insert(consumer.key.clone(), rates);
     }
 
-    async fn limiter(&self, consumer: &Consumer) -> Result<()> {
+    async fn limiter(&self, consumer: &Consumer, amount_of_bytes: usize) -> Result<()> {
         let tiers = self.state.tiers.read().await.clone();
         let tier = tiers.get(&consumer.tier);
         if tier.is_none() {
@@ -170,7 +170,12 @@ impl ProxyApp {
         let rate_limiter_map = self.state.limiter.read().await.clone();
         let rates = rate_limiter_map.get(&consumer.key).unwrap();
 
-        join_all(rates.iter().map(|r| async { r.acquire_one().await })).await;
+        join_all(
+            rates
+                .iter()
+                .map(|r| async { r.acquire(amount_of_bytes).await }),
+        )
+        .await;
 
         Ok(())
     }
