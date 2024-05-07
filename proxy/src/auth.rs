@@ -57,6 +57,7 @@ impl BackgroundService for AuthBackgroundService {
                     Some(_) => {
                         info!("auth: Adding new consumer: {}", crd.name_any());
                         let consumer = Consumer::from(&crd);
+                        self.state.limiter.write().await.remove(&consumer.key);
                         self.state
                             .consumers
                             .write()
