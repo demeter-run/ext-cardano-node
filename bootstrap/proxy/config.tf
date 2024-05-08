@@ -1,6 +1,7 @@
-// Numbers here should consider number of proxy replicas. Also, they are
-// expressed in MB per second and multiplied for simplicity.
-// Example: 1Mb/s => 1 * 1024 * 60 for the 1m limiter.
+// Numbers here should NOT consider number of proxy replicas, given that we are
+// handling long lived connections. Also, they are expressed in MB per second
+// and multiplied for simplicity. Example: 1Mb/s => 1 * 1024 * 60 for the 1m
+// limiter.
 locals {
   tiers = [
     {
@@ -8,11 +9,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(1 * 1024 * 1024 * 60 / var.replicas)
+          "limit"    = floor(1 * 1024 * 1024 * 60)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(1 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(1 * 1024 * 1024 * 60 * 60 * 24)
         }
       ]
     },
@@ -21,11 +22,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(5 * 1024 * 1024 * 60 / var.replicas)
+          "limit"    = floor(5 * 1024 * 1024 * 60)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(5 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(5 * 1024 * 1024 * 60 * 60 * 24)
         }
       ]
     },
@@ -34,11 +35,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(50 * 1024 * 1024 * 60 / var.replicas)
+          "limit"    = floor(50 * 1024 * 1024 * 60)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(50 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(50 * 1024 * 1024 * 60 * 60 * 24)
         }
       ]
     },
@@ -47,11 +48,11 @@ locals {
       "rates" = [
         {
           "interval" = "1m",
-          "limit"    = floor(100 * 1024 * 1024 * 60 / var.replicas)
+          "limit"    = floor(100 * 1024 * 1024 * 60)
         },
         {
           "interval" = "1d",
-          "limit"    = floor(100 * 1024 * 1024 * 60 * 60 * 24 / var.replicas)
+          "limit"    = floor(100 * 1024 * 1024 * 60 * 60 * 24)
         }
       ]
     }

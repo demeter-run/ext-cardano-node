@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 use auth::AuthBackgroundService;
 use dotenv::dotenv;
 use leaky_bucket::RateLimiter;
+use operator::{kube::ResourceExt, CardanoNodePort};
 use pingora::{
     listeners::Listeners,
     server::{configuration::Opt, Server},
@@ -94,15 +95,20 @@ pub struct Consumer {
     network: String,
     version: String,
 }
-impl Consumer {
-    pub fn new(
-        namespace: String,
-        port_name: String,
-        tier: String,
-        key: String,
-        network: String,
-        version: String,
-    ) -> Self {
+impl Display for Consumer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.namespace, self.port_name)
+    }
+}
+impl From<&CardanoNodePort> for Consumer {
+    fn from(value: &CardanoNodePort) -> Self {
+        let network = value.spec.network.to_string();
+        let version = value.spec.version.to_string();
+        let tier = value.spec.throughput_tier.to_string();
+        let key = value.status.as_ref().unwrap().auth_token.clone();
+        let namespace = value.metadata.namespace.as_ref().unwrap().clone();
+        let port_name = value.name_any();
+
         Self {
             namespace,
             port_name,
@@ -111,11 +117,6 @@ impl Consumer {
             network,
             version,
         }
-    }
-}
-impl Display for Consumer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}", self.namespace, self.port_name)
     }
 }
 

@@ -156,15 +156,22 @@ impl ProxyApp {
     }
 
     async fn limiter(&self, consumer: &Consumer, amount_of_bytes: usize) -> Result<()> {
-        let tiers = self.state.tiers.read().await.clone();
-        let tier = tiers.get(&consumer.tier);
-        if tier.is_none() {
-            return Err(Error::new(pingora::ErrorType::AcceptError));
-        }
-        let tier = tier.unwrap();
-
         if !self.has_limiter(consumer).await {
-            self.add_limiter(consumer, tier).await;
+            let tiers = self.state.tiers.read().await.clone();
+            let tier = tiers.get(&consumer.tier);
+            if tier.is_none() {
+                return Err(Error::new(pingora::ErrorType::AcceptError));
+            }
+            let tier = tier.unwrap();
+
+            let refreshed_consumer = match self.state.get_consumer(&consumer.key).await {
+                Some(consumer) => consumer,
+
+                // Port was deleted.
+                None => return Err(Error::new(pingora::ErrorType::ConnectRefused)),
+            };
+
+            self.add_limiter(&refreshed_consumer, tier).await;
         }
 
         let rate_limiter_map = self.state.limiter.read().await.clone();
