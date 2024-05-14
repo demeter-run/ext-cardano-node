@@ -51,6 +51,11 @@ impl From<bech32::primitives::hrp::Error> for Error {
         Error::Bech32Error(value.to_string())
     }
 }
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Error::HttpError(value.to_string())
+    }
+}
 
 #[derive(Clone)]
 pub struct State {

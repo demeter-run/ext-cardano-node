@@ -16,7 +16,7 @@ pub struct Config {
     pub api_key_salt: String,
     pub metrics_delay: Duration,
     pub prometheus_url: String,
-    pub dcu_per_package: HashMap<String, f64>,
+    pub dcu_per_second: HashMap<String, f64>,
 }
 
 impl Config {
@@ -32,14 +32,14 @@ impl Config {
                     .expect("METRICS_DELAY must be a number"),
             ),
             prometheus_url: env::var("PROMETHEUS_URL").expect("PROMETHEUS_URL must be set"),
-            dcu_per_package: env::var("DCU_PER_PACKAGE")
-                .expect("DCU_PER_PACKAGE must be set")
+            dcu_per_second: env::var("DCU_PER_SECOND")
+                .expect("DCU_PER_SECOND must be set")
                 .split(',')
                 .map(|pair| {
                     let parts: Vec<&str> = pair.split('=').collect();
                     let dcu = parts[1]
                         .parse::<f64>()
-                        .expect("DCU_PER_PACKAGE must be NETWORK=NUMBER");
+                        .expect("DCU_PER_SECOND must be NETWORK=NUMBER");
 
                     (parts[0].into(), dcu)
                 })

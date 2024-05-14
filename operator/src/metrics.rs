@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer};
 use tokio::net::TcpListener;
 use tracing::{error, info, instrument, warn};
 
-use crate::{get_config, CardanoNodePort, Error, State};
+use crate::{get_config, CardanoNodePort, Config, Error, State};
 
 #[derive(Clone)]
 pub struct Metrics {
@@ -163,7 +163,6 @@ pub fn run_metrics_collector(state: Arc<State>) {
         info!("collecting metrics running");
 
         let config = get_config();
-        let client = reqwest::Client::builder().build().unwrap();
         let project_regex = Regex::new(r"prj-(.+)\..+").unwrap();
         let network_regex = Regex::new(r"node-([\w]+)-.+").unwrap();
         let mut last_execution = Utc::now();
@@ -172,49 +171,24 @@ pub fn run_metrics_collector(state: Arc<State>) {
             tokio::time::sleep(config.metrics_delay).await;
 
             let end = Utc::now();
-            let start = (end - last_execution).num_seconds();
+            let interval = (end - last_execution).num_seconds();
 
             last_execution = end;
 
             let query = format!(
-                "sum by (consumer, exported_instance) (increase(node_proxy_total_packages_bytes[{start}s] @ {}))",
+                "sum by (consumer, exported_instance) (avg_over_time(node_proxy_total_connections[{interval}s] @ {})) > 0",
                 end.timestamp_millis() / 1000
             );
 
-            let result = client
-                .get(format!("{}/query?query={query}", config.prometheus_url))
-                .send()
-                .await;
-
-            if let Err(err) = result {
-                error!(error = err.to_string(), "error to make prometheus request");
-                state
-                    .metrics
-                    .metrics_failure(&Error::HttpError(err.to_string()));
+            let response = collect_prometheus_metrics(config, query).await;
+            if let Err(err) = response {
+                error!(error = err.to_string(), "error to request prometheus");
+                state.metrics.metrics_failure(&err);
                 continue;
             }
-
-            let response = result.unwrap();
-            let status = response.status();
-            if status.is_client_error() || status.is_server_error() {
-                error!(status = status.to_string(), "request status code fail");
-                state.metrics.metrics_failure(&Error::HttpError(format!(
-                    "Prometheus request error. Status: {} Query: {}",
-                    status, query
-                )));
-                continue;
-            }
-
-            let response = response.json::<PrometheusResponse>().await.unwrap();
+            let response = response.unwrap();
 
             for result in response.data.result {
-                if result.value == 0.0
-                    || result.metric.consumer.is_none()
-                    || result.metric.exported_instance.is_none()
-                {
-                    continue;
-                }
-
                 let consumer = result.metric.consumer.unwrap();
                 let project_captures = project_regex.captures(&consumer);
                 if project_captures.is_none() {
@@ -233,8 +207,8 @@ pub fn run_metrics_collector(state: Arc<State>) {
                 let network_captures = network_captures.unwrap();
                 let network = network_captures.get(1).unwrap().as_str();
 
-                let dcu_per_package = config.dcu_per_package.get(network);
-                if dcu_per_package.is_none() {
+                let dcu_per_second = config.dcu_per_second.get(network);
+                if dcu_per_second.is_none() {
                     let error = Error::ConfigError(format!(
                         "dcu_per_package not configured to {} network",
                         network
@@ -243,13 +217,39 @@ pub fn run_metrics_collector(state: Arc<State>) {
                     state.metrics.metrics_failure(&error);
                     continue;
                 }
-                let dcu_per_package = dcu_per_package.unwrap();
 
-                let dcu = result.value * dcu_per_package;
+                let dcu_per_second = dcu_per_second.unwrap();
+                let total_exec_time = result.value * (interval as f64);
+
+                let dcu = total_exec_time * dcu_per_second;
+
                 state.metrics.count_dcu_consumed(project, network, dcu);
             }
         }
     });
+}
+
+async fn collect_prometheus_metrics(
+    config: &Config,
+    query: String,
+) -> Result<PrometheusResponse, Error> {
+    let client = reqwest::Client::builder().build().unwrap();
+
+    let response = client
+        .get(format!("{}/query?query={query}", config.prometheus_url))
+        .send()
+        .await?;
+
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        error!(status = status.to_string(), "request status code fail");
+        return Err(Error::HttpError(format!(
+            "Prometheus request error. Status: {} Query: {}",
+            status, query
+        )));
+    }
+
+    Ok(response.json().await.unwrap())
 }
 
 #[derive(Debug, Deserialize)]
