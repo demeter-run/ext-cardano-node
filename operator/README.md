@@ -7,11 +7,15 @@ The controller will create a TLSroute on project namespace and a grant on node n
 
 ## Environment
 
-| Key       | Value               |
-| --------- | ------------------- |
-| ADDR      | 0.0.0.0:5000        |
-| DNS_ZONE  | demeter.run         |
-| NAMESPACE | ftr-cardano-node-v1 |
+| Key            | Value             |
+| -------------- | ----------------- |
+| ADDR           | 0.0.0.0:5000      |
+| DNS_ZONE       | demeter.run       |
+| EXTENSION_NAME | node-m1           |
+| API_KEY_SALT   | cardano-node-salt |
+| METRICS_DELAY  | 5                 |
+| PROMETHEUS_URL |                   |
+| DCU_PER_SECOND | NETWORK=NUMBER    |
 
 ## Commands
 
