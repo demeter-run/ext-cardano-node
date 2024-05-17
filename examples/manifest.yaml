@@ -204,12 +204,14 @@ data:
   tiers.toml: |
     [[tiers]]
     name = "0"
+    connections = 1
     [[tiers.rates]]
     interval = "1s"
     limit = 10
 
     [[tiers]]
     name = "1"
+    connections = 1
     [[tiers.rates]]
     interval = "1s"
     limit = 100

@@ -22,6 +22,13 @@ impl AuthBackgroundService {
     pub fn new(state: Arc<State>) -> Self {
         Self { state }
     }
+
+    async fn sync_consumer(&self, mut consumer: Consumer) -> Consumer {
+        if let Some(old_consumer) = self.state.consumers.read().await.clone().get(&consumer.key) {
+            consumer.active_connections = old_consumer.active_connections;
+        }
+        consumer
+    }
 }
 
 #[async_trait]
@@ -42,13 +49,13 @@ impl BackgroundService for AuthBackgroundService {
                 // Stream restart, also run on startup.
                 Ok(Some(Event::Restarted(crds))) => {
                     info!("auth: Watcher restarted, reseting consumers");
-                    let consumers: HashMap<String, Consumer> = crds
-                        .iter()
-                        .map(|crd| {
-                            let consumer = Consumer::from(crd);
-                            (consumer.key.clone(), consumer)
-                        })
-                        .collect();
+
+                    let mut consumers: HashMap<String, Consumer> = Default::default();
+                    for crd in crds.iter() {
+                        let consumer = self.sync_consumer(crd.into()).await;
+                        consumers.insert(consumer.key.clone(), consumer);
+                    }
+
                     *self.state.consumers.write().await = consumers;
                     self.state.limiter.write().await.clear();
                 }
@@ -56,7 +63,9 @@ impl BackgroundService for AuthBackgroundService {
                 Ok(Some(Event::Applied(crd))) => match crd.status {
                     Some(_) => {
                         info!("auth: Adding new consumer: {}", crd.name_any());
-                        let consumer = Consumer::from(&crd);
+
+                        let consumer = self.sync_consumer((&crd).into()).await;
+
                         self.state.limiter.write().await.remove(&consumer.key);
                         self.state
                             .consumers
@@ -76,9 +85,11 @@ impl BackgroundService for AuthBackgroundService {
                         "auth: Port deleted, removing from state: {}",
                         crd.name_any()
                     );
-                    let consumer = Consumer::from(&crd);
-                    self.state.consumers.write().await.remove(&consumer.key);
-                    self.state.limiter.write().await.remove(&consumer.key);
+                    if let Some(status) = crd.status {
+                        let key = status.auth_token;
+                        self.state.consumers.write().await.remove(&key);
+                        self.state.limiter.write().await.remove(&key);
+                    }
                 }
                 // Empty response from stream. Should never happen.
                 Ok(None) => {

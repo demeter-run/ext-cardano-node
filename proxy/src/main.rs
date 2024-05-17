@@ -94,6 +94,25 @@ pub struct Consumer {
     key: String,
     network: String,
     version: String,
+    active_connections: usize,
+}
+impl Consumer {
+    pub async fn inc_connections(&mut self, state: Arc<State>) {
+        self.active_connections += 1;
+        state
+            .consumers
+            .write()
+            .await
+            .insert(self.key.clone(), self.clone());
+    }
+    pub async fn dec_connections(&mut self, state: Arc<State>) {
+        self.active_connections -= 1;
+        state
+            .consumers
+            .write()
+            .await
+            .insert(self.key.clone(), self.clone());
+    }
 }
 impl Display for Consumer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -116,6 +135,7 @@ impl From<&CardanoNodePort> for Consumer {
             key,
             network,
             version,
+            active_connections: 0,
         }
     }
 }
@@ -124,6 +144,7 @@ impl From<&CardanoNodePort> for Consumer {
 pub struct Tier {
     name: String,
     rates: Vec<TierRate>,
+    connections: usize,
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct TierRate {
