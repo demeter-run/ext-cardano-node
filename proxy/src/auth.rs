@@ -85,11 +85,9 @@ impl BackgroundService for AuthBackgroundService {
                         "auth: Port deleted, removing from state: {}",
                         crd.name_any()
                     );
-                    if let Some(status) = crd.status {
-                        let key = status.auth_token;
-                        self.state.consumers.write().await.remove(&key);
-                        self.state.limiter.write().await.remove(&key);
-                    }
+                    let consumer = Consumer::from(&crd);
+                    self.state.consumers.write().await.remove(&consumer.key);
+                    self.state.limiter.write().await.remove(&consumer.key);
                 }
                 // Empty response from stream. Should never happen.
                 Ok(None) => {
