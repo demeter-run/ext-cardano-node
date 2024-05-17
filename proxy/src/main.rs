@@ -144,7 +144,7 @@ impl From<&CardanoNodePort> for Consumer {
 pub struct Tier {
     name: String,
     rates: Vec<TierRate>,
-    connections: usize,
+    max_connections: usize,
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct TierRate {
@@ -183,6 +183,7 @@ pub fn deserialize_duration<'de, D: Deserializer<'de>>(
 pub struct Metrics {
     total_packages_bytes: prometheus::IntCounterVec,
     total_connections: prometheus::IntGaugeVec,
+    total_connections_denied: prometheus::IntCounterVec,
 }
 impl Metrics {
     pub fn new() -> Self {
@@ -198,9 +199,19 @@ impl Metrics {
         )
         .unwrap();
 
+        let total_connections_denied = register_int_counter_vec!(
+            opts!(
+                "node_proxy_total_connections_denied",
+                "Total denied connections",
+            ),
+            &["consumer", "namespace", "instance"]
+        )
+        .unwrap();
+
         Self {
             total_packages_bytes,
             total_connections,
+            total_connections_denied,
         }
     }
 
@@ -232,6 +243,19 @@ impl Metrics {
         self.total_connections
             .with_label_values(&[consumer, namespace, instance])
             .dec()
+    }
+
+    pub fn count_total_connections_denied(
+        &self,
+        consumer: &Consumer,
+        namespace: &str,
+        instance: &str,
+    ) {
+        let consumer = &consumer.to_string();
+
+        self.total_connections_denied
+            .with_label_values(&[consumer, namespace, instance])
+            .inc()
     }
 }
 impl Default for Metrics {

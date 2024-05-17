@@ -198,7 +198,7 @@ impl ProxyApp {
         }
         let tier = tier.unwrap();
 
-        if consumer.active_connections >= tier.connections {
+        if consumer.active_connections >= tier.max_connections {
             return Err(Error::new(pingora::ErrorType::Custom(
                 "Connections tier exceeded for consumer",
             )));
@@ -231,16 +231,21 @@ impl ServerApp for ProxyApp {
         let token = captures.get(1)?.as_str().to_string();
 
         let consumer = self.state.get_consumer(&token).await?;
-        if let Err(err) = self.limiter_connection(&consumer).await {
-            error!(error = err.to_string(), consumer = consumer.to_string());
-            return None;
-        }
-
         let instance = format!(
             "node-{}-{}.{}:{}",
             consumer.network, consumer.version, self.config.node_dns, self.config.node_port
         );
+
         let namespace = self.config.proxy_namespace.clone();
+        if let Err(err) = self.limiter_connection(&consumer).await {
+            error!(error = err.to_string(), consumer = consumer.to_string());
+            self.state
+                .metrics
+                .count_total_connections_denied(&consumer, &namespace, &instance);
+
+            return None;
+        }
+
         let context = Context::new(&consumer, &instance, &namespace);
 
         let lookup_result = lookup_host(&instance).await;

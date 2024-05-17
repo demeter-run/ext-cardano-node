@@ -204,17 +204,18 @@ data:
   tiers.toml: |
     [[tiers]]
     name = "0"
-    connections = 1
+    max_connections = 1
     [[tiers.rates]]
     interval = "1s"
-    limit = 10
+    limit = 1024
 
     [[tiers]]
     name = "1"
-    connections = 1
+    max_connections = 1
     [[tiers.rates]]
     interval = "1s"
-    limit = 100
+    limit = 1024
+
 kind: ConfigMap
 metadata:
   name: proxy-config
