@@ -57,8 +57,10 @@ impl ProxyApp {
         mut io_client: Stream,
         mut io_instance: Stream,
         state: Arc<State>,
-        ctx: Context,
+        mut ctx: Context,
     ) -> Result<()> {
+        ctx.consumer.inc_connections(self.state.clone()).await;
+
         state
             .metrics
             .inc_total_connections(&ctx.consumer, &ctx.namespace, &ctx.instance);
@@ -93,6 +95,7 @@ impl ProxyApp {
             match event {
                 DuplexEvent::ClientRead(0) | DuplexEvent::InstanceRead(0) => {
                     info!("client disconnected");
+                    ctx.consumer.dec_connections(self.state.clone()).await;
                     state.metrics.dec_total_connections(
                         &ctx.consumer,
                         &ctx.namespace,
@@ -186,6 +189,23 @@ impl ProxyApp {
 
         Ok(())
     }
+
+    async fn limiter_connection(&self, consumer: &Consumer) -> Result<()> {
+        let tiers = self.state.tiers.read().await.clone();
+        let tier = tiers.get(&consumer.tier);
+        if tier.is_none() {
+            return Err(Error::new(pingora::ErrorType::AcceptError));
+        }
+        let tier = tier.unwrap();
+
+        if consumer.active_connections >= tier.max_connections {
+            return Err(Error::new(pingora::ErrorType::Custom(
+                "Connections tier exceeded for consumer",
+            )));
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -215,7 +235,17 @@ impl ServerApp for ProxyApp {
             "node-{}-{}.{}:{}",
             consumer.network, consumer.version, self.config.node_dns, self.config.node_port
         );
+
         let namespace = self.config.proxy_namespace.clone();
+        if let Err(err) = self.limiter_connection(&consumer).await {
+            error!(error = err.to_string(), consumer = consumer.to_string());
+            self.state
+                .metrics
+                .count_total_connections_denied(&consumer, &namespace, &instance);
+
+            return None;
+        }
+
         let context = Context::new(&consumer, &instance, &namespace);
 
         let lookup_result = lookup_host(&instance).await;
