@@ -12,7 +12,7 @@ use tokio::{
     net::lookup_host,
     select,
 };
-use tracing::{debug, error};
+use tracing::{error, info};
 
 use crate::{config::Config, Consumer, State, Tier};
 
@@ -94,7 +94,7 @@ impl ProxyApp {
 
             match event {
                 DuplexEvent::ClientRead(0) | DuplexEvent::InstanceRead(0) => {
-                    debug!(
+                    info!(
                         consumer = ctx.consumer.to_string(),
                         active_connections = ctx.consumer.active_connections,
                         "client disconnected"
