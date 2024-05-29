@@ -15,7 +15,7 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer};
 use tiers::TierBackgroundService;
 use tokio::sync::RwLock;
-use tracing::Level;
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 use crate::config::Config;
 
@@ -27,7 +27,10 @@ mod tiers;
 fn main() {
     dotenv().ok();
 
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
 
     let config: Arc<Config> = Arc::default();
     let state: Arc<State> = Arc::default();
