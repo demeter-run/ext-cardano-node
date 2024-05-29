@@ -15,6 +15,7 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer};
 use tiers::TierBackgroundService;
 use tokio::sync::RwLock;
+use tracing::Level;
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 use crate::config::Config;
@@ -27,9 +28,14 @@ mod tiers;
 fn main() {
     dotenv().ok();
 
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(Level::INFO.into())
+        .with_env_var("RUST_LOG")
+        .from_env_lossy();
+
     tracing_subscriber::registry()
         .with(fmt::layer())
-        .with(EnvFilter::from_default_env())
+        .with(env_filter)
         .init();
 
     let config: Arc<Config> = Arc::default();
