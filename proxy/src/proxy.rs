@@ -190,13 +190,18 @@ impl ProxyApp {
         Ok(())
     }
 
-    async fn limiter_connection(&self, consumer: &Consumer) -> Result<()> {
+    async fn get_tier(&self, tier: &str) -> Result<Tier> {
         let tiers = self.state.tiers.read().await.clone();
-        let tier = tiers.get(&consumer.tier);
+        let tier = tiers.get(tier);
         if tier.is_none() {
             return Err(Error::new(pingora::ErrorType::AcceptError));
         }
-        let tier = tier.unwrap();
+        let tier = tier.unwrap().clone();
+        Ok(tier)
+    }
+
+    async fn limiter_connection(&self, consumer: &Consumer) -> Result<()> {
+        let tier = self.get_tier(&consumer.tier).await?;
 
         if consumer.active_connections >= tier.max_connections {
             return Err(Error::new(pingora::ErrorType::Custom(
@@ -238,10 +243,27 @@ impl ServerApp for ProxyApp {
 
         let namespace = self.config.proxy_namespace.clone();
         if let Err(err) = self.limiter_connection(&consumer).await {
-            error!(error = err.to_string(), consumer = consumer.to_string());
             self.state
                 .metrics
                 .count_total_connections_denied(&consumer, &namespace, &instance);
+
+            let tier_result = self.get_tier(&consumer.tier).await;
+            if let Err(err) = tier_result {
+                error!(
+                    error = err.to_string(),
+                    consumer = consumer.to_string(),
+                    "Error to get the tier"
+                );
+                return None;
+            }
+
+            let tier = tier_result.unwrap();
+            error!(
+                error = err.to_string(),
+                consumer = consumer.to_string(),
+                active_connections = consumer.active_connections,
+                max_connections = tier.max_connections
+            );
 
             return None;
         }
