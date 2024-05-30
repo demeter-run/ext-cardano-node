@@ -1,4 +1,4 @@
-resource "kubernetes_manifest" "proxy_monitor" {
+resource "kubernetes_manifest" "podmonitor" {
   manifest = {
     apiVersion = "monitoring.coreos.com/v1"
     kind       = "PodMonitor"
@@ -7,16 +7,24 @@ resource "kubernetes_manifest" "proxy_monitor" {
         "app.kubernetes.io/component" = "o11y"
         "app.kubernetes.io/part-of"   = "demeter"
       }
-      name      = local.name
+      name      = "node-${var.network}-${var.salt}"
       namespace = var.namespace
     }
     spec = {
       selector = {
-        matchLabels = local.proxy_labels
+        matchLabels = {
+          role    = "node"
+          network = var.network
+          salt    = var.salt
+        }
       }
       podMetricsEndpoints = [
         {
           port = "metrics",
+          path = "/metrics"
+        },
+        {
+          port = "ogmios",
           path = "/metrics"
         }
       ]

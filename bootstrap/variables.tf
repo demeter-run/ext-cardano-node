@@ -12,10 +12,6 @@ variable "extension_name" {
   default = "nodes-m1"
 }
 
-variable "instances_namespace" {
-  type = string
-}
-
 // Operator
 variable "operator_image_tag" {
   type = string
@@ -25,14 +21,14 @@ variable "api_key_salt" {
   type = string
 }
 
-variable "dcu_per_package" {
+variable "dcu_per_second" {
   type = map(string)
   default = {
-    "mainnet"        = "10"
-    "preprod"        = "5"
-    "preview"        = "5"
-    "sanchonet"      = "5"
-    "vector-testnet" = "5"
+    "mainnet"        = "1"
+    "preprod"        = "1"
+    "preview"        = "1"
+    "sanchonet"      = "1"
+    "vector-testnet" = "1"
   }
 }
 
@@ -65,13 +61,42 @@ variable "operator_resources" {
 }
 
 // Proxy
-variable "proxy_image_tag" {
+variable "proxy_green_image_tag" {
   type = string
 }
 
-variable "proxy_replicas" {
+variable "proxy_green_replicas" {
   type    = number
   default = 1
+}
+
+variable "proxy_green_healthcheck_port" {
+  type        = number
+  description = "The port the loadbalancer assigned to the HTTP endpoint of the service. Usually known after the service is created. The default is the target-port."
+  default = null
+}
+
+variable "proxy_green_instances_namespace" {
+  type = string
+}
+
+variable "proxy_blue_image_tag" {
+  type = string
+}
+
+variable "proxy_blue_replicas" {
+  type    = number
+  default = 1
+}
+
+variable "proxy_blue_healthcheck_port" {
+  type        = number
+  description = "The port the loadbalancer assigned to the HTTP endpoint of the service. Usually known after the service is created. The default is the target-port."
+  default     = null
+}
+
+variable "proxy_blue_instances_namespace" {
+  type = string
 }
 
 variable "proxy_resources" {
@@ -99,4 +124,42 @@ variable "proxy_resources" {
       ephemeral_storage : "4Gi"
     }
   }
+}
+
+variable "instances" {
+  type = map(object({
+    node_image    = string
+    image_tag     = string
+    network       = string
+    salt          = string
+    release       = string
+    magic         = number
+    topology_zone = string
+    node_resources = optional(object({
+      limits = object({
+        cpu    = string
+        memory = string
+      })
+      requests = object({
+        cpu    = string
+        memory = string
+      })
+    }))
+    storage_size     = optional(string)
+    node_version     = string
+    replicas         = number
+    restore          = optional(bool)
+    compute_arch     = optional(string)
+    compute_profile  = optional(string)
+    availability_sla = optional(string)
+    is_custom        = optional(bool)
+  }))
+}
+
+variable "services" {
+  type = map(object({
+    network     = string
+    release     = string
+    active_salt = optional(string)
+  }))
 }
