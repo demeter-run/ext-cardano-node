@@ -1,13 +1,3 @@
-locals {
-  name = "proxy"
-  role = "proxy"
-
-  prometheus_port = 9187
-  prometheus_addr = "0.0.0.0:${local.prometheus_port}"
-  proxy_port      = 8080
-  proxy_addr      = "0.0.0.0:${local.proxy_port}"
-}
-
 resource "kubernetes_deployment_v1" "node_proxy" {
   wait_for_rollout = false
   depends_on       = [kubernetes_manifest.certificate_cluster_wildcard_tls]
@@ -15,23 +5,17 @@ resource "kubernetes_deployment_v1" "node_proxy" {
   metadata {
     name      = local.name
     namespace = var.namespace
-    labels = {
-      role = local.role
-    }
+    labels    = local.proxy_labels
   }
   spec {
     replicas = var.replicas
     selector {
-      match_labels = {
-        role = local.role
-      }
+      match_labels = local.proxy_labels
     }
     template {
       metadata {
         name = local.name
-        labels = {
-          role = local.role
-        }
+        labels = local.proxy_labels
       }
       spec {
         container {

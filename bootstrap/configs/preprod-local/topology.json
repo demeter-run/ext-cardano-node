@@ -1,0 +1,21 @@
+{
+  "localRoots": [
+    {
+      "accessPoints": [],
+      "advertise": false,
+      "valency": 1
+    }
+  ],
+  "publicRoots": [
+    {
+      "accessPoints": [
+        {
+          "address": "node-preprod-stable.ftr-nodes-v2.svc.cluster.local",
+          "port": 3000
+        }
+      ],
+      "advertise": false
+    }
+  ],
+  "useLedgerAfterSlot": 4642000
+}

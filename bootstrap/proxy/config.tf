@@ -3,56 +3,46 @@
 // and multiplied for simplicity. Example: 1Mb/s => 1 * 1024 * 60 for the 1m
 // limiter.
 locals {
+  config_map_name = var.environment != null ? "${var.environment}-proxy-config" : "proxy-config"
+
   tiers = [
     {
-      "name" = "0",
+      "name"            = "0",
+      "max_connections" = 1
       "rates" = [
         {
-          "interval" = "1m",
-          "limit"    = floor(1 * 1024 * 1024 * 60)
-        },
-        {
-          "interval" = "1d",
-          "limit"    = floor(1 * 1024 * 1024 * 60 * 60 * 24)
+          "interval" = "1s",
+          "limit"    = 1024 * 1024
         }
       ]
     },
     {
-      "name" = "1",
+      "name"            = "1",
+      "max_connections" = 5
       "rates" = [
         {
-          "interval" = "1m",
-          "limit"    = floor(5 * 1024 * 1024 * 60)
-        },
-        {
-          "interval" = "1d",
-          "limit"    = floor(5 * 1024 * 1024 * 60 * 60 * 24)
+          "interval" = "1s",
+          "limit"    = 1024 * 1024
         }
       ]
     },
     {
-      "name" = "2",
+      "name"            = "2",
+      "max_connections" = 25
       "rates" = [
         {
-          "interval" = "1m",
-          "limit"    = floor(50 * 1024 * 1024 * 60)
-        },
-        {
-          "interval" = "1d",
-          "limit"    = floor(50 * 1024 * 1024 * 60 * 60 * 24)
+          "interval" = "1s",
+          "limit"    = 1024 * 1024
         }
       ]
     },
     {
-      "name" = "3",
+      "name"            = "3",
+      "max_connections" = 75
       "rates" = [
         {
-          "interval" = "1m",
-          "limit"    = floor(100 * 1024 * 1024 * 60)
-        },
-        {
-          "interval" = "1d",
-          "limit"    = floor(100 * 1024 * 1024 * 60 * 60 * 24)
+          "interval" = "1s",
+          "limit"    = 1024 * 1024
         }
       ]
     }
@@ -62,7 +52,7 @@ locals {
 resource "kubernetes_config_map" "proxy" {
   metadata {
     namespace = var.namespace
-    name      = "proxy-config"
+    name      = local.config_map_name
   }
 
   data = {

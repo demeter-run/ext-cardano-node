@@ -23,14 +23,14 @@ variable "metrics_delay" {
   default     = "30"
 }
 
-variable "dcu_per_package" {
+variable "dcu_per_second" {
   type = map(string)
   default = {
-    "mainnet"        = "10"
-    "preprod"        = "5"
-    "preview"        = "5"
-    "sanchonet"      = "5"
-    "vector-testnet" = "5"
+    "mainnet"        = "1"
+    "preprod"        = "1"
+    "preview"        = "1"
+    "sanchonet"      = "1"
+    "vector-testnet" = "1"
   }
 }
 

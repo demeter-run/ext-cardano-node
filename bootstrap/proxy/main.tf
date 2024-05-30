@@ -1,3 +1,24 @@
+locals {
+  name = var.name
+  role = "proxy"
+
+  prometheus_port = 9187
+  prometheus_addr = "0.0.0.0:${local.prometheus_port}"
+  proxy_port      = 8080
+  proxy_addr      = "0.0.0.0:${local.proxy_port}"
+  proxy_labels    = var.environment != null ? { role = "${local.role}-${var.environment}" } : { role = local.role }
+}
+
+variable "name" {
+  type    = string
+  default = "proxy"
+}
+
+// blue - green
+variable "environment" {
+  default = null
+}
+
 variable "namespace" {
   type = string
 }
@@ -59,4 +80,8 @@ variable "extension_name" {
 variable "dns_zone" {
   type    = string
   default = "demeter.run"
+}
+
+variable "healthcheck_port" {
+  type = number
 }
