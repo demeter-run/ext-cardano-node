@@ -106,21 +106,30 @@ pub struct Consumer {
     active_connections: usize,
 }
 impl Consumer {
-    pub async fn inc_connections(&mut self, state: Arc<State>) {
-        self.active_connections += 1;
+    pub async fn inc_connections(&self, state: Arc<State>) {
         state
             .consumers
             .write()
             .await
-            .insert(self.key.clone(), self.clone());
+            .entry(self.key.clone())
+            .and_modify(|consumer| consumer.active_connections += 1);
     }
     pub async fn dec_connections(&mut self, state: Arc<State>) {
-        self.active_connections -= 1;
         state
             .consumers
             .write()
             .await
-            .insert(self.key.clone(), self.clone());
+            .entry(self.key.clone())
+            .and_modify(|consumer| consumer.active_connections -= 1);
+    }
+    pub async fn get_active_connections(&self, state: Arc<State>) -> usize {
+        state
+            .consumers
+            .read()
+            .await
+            .get(&self.key)
+            .map(|consumer| consumer.active_connections)
+            .unwrap_or_default()
     }
 }
 impl Display for Consumer {
