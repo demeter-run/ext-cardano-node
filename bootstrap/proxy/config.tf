@@ -11,8 +11,8 @@ locals {
       "max_connections" = 1
       "rates" = [
         {
-          "interval" = "1s",
-          "limit"    = 1024 * 1024
+          "interval" = "1m",
+          "limit"    = 1024 * 1024 * 60
         }
       ]
     },
@@ -21,8 +21,8 @@ locals {
       "max_connections" = 5
       "rates" = [
         {
-          "interval" = "1s",
-          "limit"    = 1024 * 1024
+          "interval" = "1m",
+          "limit"    = 1024 * 1024 * 60 * 2
         }
       ]
     },
@@ -31,8 +31,8 @@ locals {
       "max_connections" = 25
       "rates" = [
         {
-          "interval" = "1s",
-          "limit"    = 1024 * 1024
+          "interval" = "1m",
+          "limit"    = 1024 * 1024 * 60 * 2
         }
       ]
     },
@@ -40,9 +40,9 @@ locals {
       "name"            = "3",
       "max_connections" = 75
       "rates" = [
-        {
-          "interval" = "1s",
-          "limit"    = 1024 * 1024
+        { 
+          "interval" = "1m",
+          "limit"    = 1024 * 1024 * 60 * 2
         }
       ]
     }

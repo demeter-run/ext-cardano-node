@@ -105,3 +105,9 @@ module "services" {
   release     = each.value.release
   active_salt = each.value.active_salt
 }
+
+module "node_relay" {
+  depends_on = [kubernetes_namespace.namespace]
+  source     = "./relay"
+  namespace  = var.namespace
+}
