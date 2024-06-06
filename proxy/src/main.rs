@@ -207,13 +207,13 @@ impl Metrics {
     pub fn new() -> Self {
         let total_connections = register_int_gauge_vec!(
             opts!("node_proxy_total_connections", "Total connections",),
-            &["consumer", "namespace", "instance"]
+            &["consumer", "namespace", "instance", "tier"]
         )
         .unwrap();
 
         let total_packages_bytes = register_int_counter_vec!(
             opts!("node_proxy_total_packages_bytes", "Total bytes transferred",),
-            &["consumer", "namespace", "instance"]
+            &["consumer", "namespace", "instance", "tier"]
         )
         .unwrap();
 
@@ -222,7 +222,7 @@ impl Metrics {
                 "node_proxy_total_connections_denied",
                 "Total denied connections",
             ),
-            &["consumer", "namespace", "instance"]
+            &["consumer", "namespace", "instance", "tier"]
         )
         .unwrap();
 
@@ -240,26 +240,20 @@ impl Metrics {
         instance: &str,
         value: usize,
     ) {
-        let consumer = &consumer.to_string();
-
         self.total_packages_bytes
-            .with_label_values(&[consumer, namespace, instance])
+            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
             .inc_by(value as u64)
     }
 
     pub fn inc_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
-        let consumer = &consumer.to_string();
-
         self.total_connections
-            .with_label_values(&[consumer, namespace, instance])
+            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
             .inc()
     }
 
     pub fn dec_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
-        let consumer = &consumer.to_string();
-
         self.total_connections
-            .with_label_values(&[consumer, namespace, instance])
+            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
             .dec()
     }
 
@@ -269,10 +263,8 @@ impl Metrics {
         namespace: &str,
         instance: &str,
     ) {
-        let consumer = &consumer.to_string();
-
         self.total_connections_denied
-            .with_label_values(&[consumer, namespace, instance])
+            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
             .inc()
     }
 }
