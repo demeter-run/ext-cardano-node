@@ -22,6 +22,8 @@ locals {
     "3000"
   ]
   arguments = var.is_custom == true ? local.custom_arguments : local.default_arguments
+
+  n2n_port_name = contains(["mainnet", "preview", "preprod"], var.network) && var.release == "stable" ? "n2n-${var.network}" : "n2n"
 }
 
 
@@ -177,7 +179,7 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           port {
-            name           = "n2n"
+            name           = local.n2n_port_name
             container_port = 3000
           }
 
