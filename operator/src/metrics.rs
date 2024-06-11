@@ -247,7 +247,7 @@ pub fn run_metrics_collector(state: Arc<State>) {
                 if let Some(tier) = result.metric.tier {
                     state
                         .metrics
-                        .count_usage(project, resource_name, &tier, result.value);
+                        .count_usage(project, resource_name, &tier, total_exec_time);
                 }
             }
         }

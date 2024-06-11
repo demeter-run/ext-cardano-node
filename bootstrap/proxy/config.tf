@@ -8,7 +8,7 @@ locals {
   tiers = [
     {
       "name"            = "0",
-      "max_connections" = 1
+      "max_connections" = 2
       "rates" = [
         {
           "interval" = "1m",
