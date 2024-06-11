@@ -14,7 +14,7 @@ resource "kubernetes_deployment_v1" "node_proxy" {
     }
     template {
       metadata {
-        name = local.name
+        name   = local.name
         labels = local.proxy_labels
       }
       spec {
