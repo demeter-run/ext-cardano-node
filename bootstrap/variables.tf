@@ -73,7 +73,7 @@ variable "proxy_green_replicas" {
 variable "proxy_green_healthcheck_port" {
   type        = number
   description = "The port the loadbalancer assigned to the HTTP endpoint of the service. Usually known after the service is created. The default is the target-port."
-  default = null
+  default     = null
 }
 
 variable "proxy_green_instances_namespace" {

@@ -12,7 +12,7 @@ variable "release" {
 
 variable "active_salt" {
   description = "the salt to use for the active network"
-  default = ""
+  default     = ""
 }
 
 locals {

@@ -40,7 +40,7 @@ locals {
       "name"            = "3",
       "max_connections" = 75
       "rates" = [
-        { 
+        {
           "interval" = "1m",
           "limit"    = 1024 * 1024 * 60 * 2
         }

@@ -18,7 +18,7 @@ module "node_v1_feature" {
 }
 
 // blue (once we have a green, we can update its name to proxy-blue)
-module "node_v1_proxy" {
+module "node_v1_proxy_blue" {
   depends_on          = [kubernetes_namespace.namespace]
   source              = "./proxy"
   namespace           = var.namespace
@@ -29,7 +29,8 @@ module "node_v1_proxy" {
   resources           = var.proxy_resources
   instances_namespace = var.proxy_blue_instances_namespace
   healthcheck_port    = var.proxy_blue_healthcheck_port
-  name                = "proxy"
+  environment         = "blue"
+  name                = "proxy-blue"
 }
 
 module "node_v1_proxy_green" {
