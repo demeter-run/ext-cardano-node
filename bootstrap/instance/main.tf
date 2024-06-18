@@ -28,6 +28,10 @@ variable "node_resources" {
   }
 }
 
+variable "storage_class_name" {
+  default = "gp3"
+}
+
 variable "storage_size" {
   default = "50Gi"
 }
