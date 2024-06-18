@@ -66,20 +66,21 @@ module "instances" {
       "cpu"    = "100m"
     }
   })
-  storage_size     = coalesce(each.value.storage_size, "50Gi")
-  node_image       = each.value.node_image
-  node_image_tag   = each.value.image_tag
-  release          = each.value.release
-  network          = each.value.network
-  magic            = each.value.magic
-  topology_zone    = each.value.topology_zone
-  salt             = each.value.salt
-  compute_arch     = coalesce(each.value.compute_arch, "arm64")
-  compute_profile  = coalesce(each.value.compute_profile, "mem-intensive")
-  availability_sla = coalesce(each.value.availability_sla, "consistent")
-  node_version     = each.value.node_version
-  restore          = coalesce(each.value.restore, false)
-  is_custom        = coalesce(each.value.is_custom, false)
+  storage_class_name = coalesce(each.value.storage_class_name, "gp3")
+  storage_size       = coalesce(each.value.storage_size, "50Gi")
+  node_image         = each.value.node_image
+  node_image_tag     = each.value.image_tag
+  release            = each.value.release
+  network            = each.value.network
+  magic              = each.value.magic
+  topology_zone      = each.value.topology_zone
+  salt               = each.value.salt
+  compute_arch       = coalesce(each.value.compute_arch, "arm64")
+  compute_profile    = coalesce(each.value.compute_profile, "mem-intensive")
+  availability_sla   = coalesce(each.value.availability_sla, "consistent")
+  node_version       = each.value.node_version
+  restore            = coalesce(each.value.restore, false)
+  is_custom          = coalesce(each.value.is_custom, false)
 }
 
 

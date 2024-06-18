@@ -145,14 +145,15 @@ variable "instances" {
         memory = string
       })
     }))
-    storage_size     = optional(string)
-    node_version     = string
-    replicas         = number
-    restore          = optional(bool)
-    compute_arch     = optional(string)
-    compute_profile  = optional(string)
-    availability_sla = optional(string)
-    is_custom        = optional(bool)
+    storage_size       = optional(string)
+    storage_class_name = optional(string, "gp3")
+    node_version       = string
+    replicas           = number
+    restore            = optional(bool)
+    compute_arch       = optional(string)
+    compute_profile    = optional(string)
+    availability_sla   = optional(string)
+    is_custom          = optional(bool)
   }))
 }
 
