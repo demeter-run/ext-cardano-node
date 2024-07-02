@@ -73,7 +73,7 @@ resource "kubernetes_stateful_set_v1" "node" {
       }
       spec {
         access_modes       = ["ReadWriteOnce"]
-        storage_class_name = "gp3"
+        storage_class_name = var.storage_class_name
         resources {
           requests = {
             storage = var.storage_size
