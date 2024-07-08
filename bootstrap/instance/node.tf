@@ -21,7 +21,7 @@ locals {
     "--port",
     "3000"
   ]
-  arguments = var.is_custom == true ? local.custom_arguments : local.default_arguments
+  arguments = var.network == "vector-testnet" ? [] : var.is_custom == true ? local.custom_arguments : local.default_arguments
 
   n2n_port_name = contains(["mainnet", "preview", "preprod"], var.network) && var.release == "stable" ? "n2n-${var.network}" : "n2n"
 }
@@ -157,6 +157,14 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
         }
 
+        volume {
+          name = "node-readiness"
+          config_map {
+            name         = "node-readiness"
+            default_mode = "0500"
+          }
+        }
+
         container {
           image = "${var.node_image}:${var.node_image_tag}"
           name  = "main"
@@ -171,6 +179,33 @@ resource "kubernetes_stateful_set_v1" "node" {
           env {
             name  = "RESTORE_SNAPSHOT"
             value = var.restore
+          }
+
+          env {
+            name  = "CARDANO_NODE_SOCKET_PATH"
+            value = "/ipc/node.socket"
+          }
+
+          env {
+            name  = "CARDANO_NODE_NETWORK_ID"
+            value = var.magic
+          }
+
+          dynamic "env" {
+            for_each = var.network == "vector-testnet" ? toset([1]) : toset([])
+
+            content {
+              name  = "PORT"
+              value = "3000"
+            }
+          }
+
+          dynamic "env" {
+            for_each = var.network == "vector-testnet" ? toset([1]) : toset([])
+            content {
+              name  = "NETWORK"
+              value = "testnet"
+            }
           }
 
           resources {
@@ -198,6 +233,11 @@ resource "kubernetes_stateful_set_v1" "node" {
             name       = "ipc"
           }
 
+          volume_mount {
+            mount_path = "/probes"
+            name       = "node-readiness"
+          }
+
           dynamic "volume_mount" {
             for_each = var.is_custom == true ? toset([1]) : toset([])
 
@@ -207,10 +247,14 @@ resource "kubernetes_stateful_set_v1" "node" {
             }
           }
 
-          readiness_probe {
-            initial_delay_seconds = 20
-            exec {
-              command = ["test", "-S", "/ipc/node.socket"]
+          dynamic "readiness_probe" {
+            for_each = var.network != "vector-testnet" ? toset([1]) : toset([])
+
+            content {
+              initial_delay_seconds = 20
+              exec {
+                command = ["/probes/readiness.sh"]
+              }
             }
           }
         }
