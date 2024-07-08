@@ -29,6 +29,7 @@ module "node_v1_proxy_blue" {
   resources           = var.proxy_resources
   instances_namespace = var.proxy_blue_instances_namespace
   healthcheck_port    = var.proxy_blue_healthcheck_port
+  cloud_provider      = var.cloud_provider
   environment         = "blue"
   name                = "proxy-blue"
 }
@@ -44,6 +45,7 @@ module "node_v1_proxy_green" {
   resources           = var.proxy_resources
   instances_namespace = var.proxy_green_instances_namespace
   healthcheck_port    = var.proxy_green_healthcheck_port
+  cloud_provider      = var.cloud_provider
   environment         = "green"
   name                = "proxy-green"
 }
@@ -83,7 +85,6 @@ module "instances" {
   is_custom          = coalesce(each.value.is_custom, false)
 }
 
-
 module "custom_configs" {
   depends_on = [kubernetes_namespace.namespace]
   source     = "./configs"
@@ -109,7 +110,8 @@ module "services" {
 }
 
 module "node_relay" {
-  depends_on = [kubernetes_namespace.namespace]
-  source     = "./relay"
-  namespace  = var.namespace
+  depends_on     = [kubernetes_namespace.namespace]
+  source         = "./relay"
+  namespace      = var.namespace
+  cloud_provider = var.cloud_provider
 }
