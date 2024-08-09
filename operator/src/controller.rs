@@ -35,6 +35,7 @@ pub struct CardanoNodePortSpec {
     pub network: String,
     pub version: String,
     pub throughput_tier: String,
+    pub auth_token: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug, JsonSchema)]
@@ -55,7 +56,10 @@ impl Context {
 }
 
 async fn reconcile(crd: Arc<CardanoNodePort>, ctx: Arc<Context>) -> Result<Action> {
-    let key = build_api_key(&crd).await?;
+    let key = match &crd.spec.auth_token {
+        Some(key) => key.clone(),
+        None => build_api_key(&crd).await?,
+    };
 
     let status = CardanoNodePortStatus {
         authenticated_endpoint_url: build_hostname(&key),
