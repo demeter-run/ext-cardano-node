@@ -91,3 +91,7 @@ variable "restore" {
 variable "is_custom" {
   default = false
 }
+
+variable "is_relay" {
+  default = false
+}

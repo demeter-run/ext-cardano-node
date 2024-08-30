@@ -23,7 +23,7 @@ locals {
   ]
   arguments = var.network == "vector-testnet" ? [] : var.is_custom == true ? local.custom_arguments : local.default_arguments
 
-  n2n_port_name = contains(["mainnet", "preview", "preprod"], var.network) && var.release == "stable" ? "n2n-${var.network}" : "n2n"
+  n2n_port_name = var.is_relay == true ? "n2n-${var.network}" : "n2n"
 }
 
 

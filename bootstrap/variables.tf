@@ -154,13 +154,15 @@ variable "instances" {
     compute_profile    = optional(string)
     availability_sla   = optional(string)
     is_custom          = optional(bool)
+    is_relay           = optional(bool, false)
   }))
 }
 
 variable "services" {
   type = map(object({
-    network     = string
-    release     = string
-    active_salt = optional(string)
+    network      = string
+    release      = string
+    node_version = string
+    active_salt  = optional(string)
   }))
 }

@@ -81,6 +81,7 @@ module "instances" {
   node_version       = each.value.node_version
   restore            = coalesce(each.value.restore, false)
   is_custom          = coalesce(each.value.is_custom, false)
+  is_relay           = coalesce(each.value.is_relay, false)
 }
 
 
@@ -102,10 +103,11 @@ module "services" {
   for_each   = var.services
   source     = "./service"
 
-  namespace   = var.namespace
-  network     = each.value.network
-  release     = each.value.release
-  active_salt = each.value.active_salt
+  namespace    = var.namespace
+  network      = each.value.network
+  release      = each.value.release
+  node_version = each.value.node_version
+  active_salt  = each.value.active_salt
 }
 
 module "node_relay" {

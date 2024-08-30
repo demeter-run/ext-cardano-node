@@ -15,16 +15,20 @@ variable "active_salt" {
   default     = ""
 }
 
+variable "node_version" {
+  description = "the version of the node"
+}
+
 locals {
   selector = length(var.active_salt) > 0 ? {
-    "role"    = "node"
-    "network" = var.network
-    "release" = var.release
-    "salt"    = var.active_salt
+    "role"         = "node"
+    "network"      = var.network
+    "node-version" = var.node_version
+    "salt"         = var.active_salt
     } : {
-    "role"    = "node"
-    "network" = var.network
-    "release" = var.release
+    "role"         = "node"
+    "network"      = var.network
+    "node-version" = var.node_version
   }
 }
 
