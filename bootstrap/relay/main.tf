@@ -19,7 +19,6 @@ resource "kubernetes_service_v1" "node-relay-n2n" {
 
     selector = {
       "role"    = "node"
-      "release" = "stable"
     }
 
     port {
@@ -42,9 +41,5 @@ resource "kubernetes_service_v1" "node-relay-n2n" {
       port        = 3002
       target_port = "n2n-preview"
     }
-
-
-
-
   }
 }
