@@ -46,7 +46,7 @@ impl ProxyApp {
     pub fn new(config: Arc<Config>, state: Arc<State>) -> Self {
         ProxyApp {
             client_connector: TransportConnector::new(None),
-            host_regex: Regex::new(r"(dmtr_[\w\d-]+)\..+").unwrap(),
+            host_regex: Regex::new(r"([\w\d-]+)\..+").unwrap(),
             config,
             state,
         }
@@ -241,7 +241,13 @@ impl ServerApp for ProxyApp {
 
         let token = captures.get(1)?.as_str().to_string();
 
-        let consumer = self.state.get_consumer(&token).await?;
+        let result = bech32::decode(&token);
+        if let Err(error) = result {
+            error!(?error, "invalid bech32");
+            return None;
+        }
+
+        let consumer = self.state.get_consumer(&result.unwrap().1).await?;
         let instance = format!(
             "node-{}-{}.{}:{}",
             consumer.network, consumer.version, self.config.node_dns, self.config.node_port

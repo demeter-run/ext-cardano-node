@@ -50,9 +50,15 @@ impl BackgroundService for AuthBackgroundService {
                 Ok(Some(Event::Restarted(crds))) => {
                     info!("auth: Watcher restarted, reseting consumers");
 
-                    let mut consumers: HashMap<String, Consumer> = Default::default();
+                    let mut consumers: HashMap<Vec<u8>, Consumer> = Default::default();
                     for crd in crds.iter() {
-                        let consumer = self.sync_consumer(crd.into()).await;
+                        let result = Consumer::new(crd);
+                        if let Err(error) = result {
+                            error!(?error, "invalid consumer");
+                            continue;
+                        }
+
+                        let consumer = self.sync_consumer(result.unwrap()).await;
                         consumers.insert(consumer.key.clone(), consumer);
                     }
 
@@ -64,7 +70,13 @@ impl BackgroundService for AuthBackgroundService {
                     Some(_) => {
                         info!("auth: Adding new consumer: {}", crd.name_any());
 
-                        let consumer = self.sync_consumer((&crd).into()).await;
+                        let result = Consumer::new(&crd);
+                        if let Err(error) = result {
+                            error!(?error, "invalid consumer");
+                            continue;
+                        }
+
+                        let consumer = self.sync_consumer(result.unwrap()).await;
 
                         self.state.limiter.write().await.remove(&consumer.key);
                         self.state
@@ -85,7 +97,13 @@ impl BackgroundService for AuthBackgroundService {
                         "auth: Port deleted, removing from state: {}",
                         crd.name_any()
                     );
-                    let consumer = Consumer::from(&crd);
+
+                    let result = Consumer::new(&crd);
+                    if let Err(error) = result {
+                        error!(?error, "invalid consumer");
+                        continue;
+                    }
+                    let consumer = result.unwrap();
                     self.state.consumers.write().await.remove(&consumer.key);
                     self.state.limiter.write().await.remove(&consumer.key);
                 }

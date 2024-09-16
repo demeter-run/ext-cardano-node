@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
+use std::{collections::HashMap, error::Error, fmt::Display, sync::Arc, time::Duration};
 
 use auth::AuthBackgroundService;
 use dotenv::dotenv;
@@ -80,8 +80,8 @@ fn main() {
 #[derive(Default)]
 pub struct State {
     metrics: Metrics,
-    consumers: RwLock<HashMap<String, Consumer>>,
-    limiter: RwLock<HashMap<String, Vec<Arc<RateLimiter>>>>,
+    consumers: RwLock<HashMap<Vec<u8>, Consumer>>,
+    limiter: RwLock<HashMap<Vec<u8>, Vec<Arc<RateLimiter>>>>,
     tiers: RwLock<HashMap<String, Tier>>,
 }
 impl State {
@@ -89,7 +89,7 @@ impl State {
         Self::default()
     }
 
-    pub async fn get_consumer(&self, key: &str) -> Option<Consumer> {
+    pub async fn get_consumer(&self, key: &[u8]) -> Option<Consumer> {
         let consumers = self.consumers.read().await.clone();
         consumers.get(key).cloned()
     }
@@ -100,12 +100,32 @@ pub struct Consumer {
     namespace: String,
     port_name: String,
     tier: String,
-    key: String,
+    key: Vec<u8>,
     network: String,
     version: String,
     active_connections: usize,
 }
 impl Consumer {
+    pub fn new(crd: &CardanoNodePort) -> Result<Self, Box<dyn Error>> {
+        let network = crd.spec.network.to_string();
+        let version = crd.spec.version.to_string();
+        let tier = crd.spec.throughput_tier.to_string();
+        let key = crd.status.as_ref().unwrap().auth_token.clone();
+        let namespace = crd.metadata.namespace.as_ref().unwrap().clone();
+        let port_name = crd.name_any();
+
+        let (_hrp, key) = bech32::decode(&key)?;
+
+        Ok(Self {
+            namespace,
+            port_name,
+            tier,
+            key,
+            network,
+            version,
+            active_connections: 0,
+        })
+    }
     pub async fn inc_connections(&self, state: Arc<State>) {
         state
             .consumers
@@ -135,26 +155,6 @@ impl Consumer {
 impl Display for Consumer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}", self.namespace, self.port_name)
-    }
-}
-impl From<&CardanoNodePort> for Consumer {
-    fn from(value: &CardanoNodePort) -> Self {
-        let network = value.spec.network.to_string();
-        let version = value.spec.version.to_string();
-        let tier = value.spec.throughput_tier.to_string();
-        let key = value.status.as_ref().unwrap().auth_token.clone();
-        let namespace = value.metadata.namespace.as_ref().unwrap().clone();
-        let port_name = value.name_any();
-
-        Self {
-            namespace,
-            port_name,
-            tier,
-            key,
-            network,
-            version,
-            active_connections: 0,
-        }
     }
 }
 

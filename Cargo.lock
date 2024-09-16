@@ -1923,6 +1923,7 @@ name = "proxy"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "bech32",
  "dotenv",
  "futures-util",
  "leaky-bucket",
