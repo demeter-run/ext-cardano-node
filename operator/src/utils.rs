@@ -23,6 +23,7 @@ pub async fn patch_resource_status(
     let patch_params = PatchParams::default();
     api.patch_status(name, &patch_params, &Patch::Merge(status))
         .await?;
+
     Ok(())
 }
 
@@ -38,8 +39,6 @@ pub async fn build_api_key(crd: &CardanoNodePort) -> Result<String, Error> {
     let namespace = crd.namespace().unwrap();
     let name = format!("cardano-node-auth-{}", &crd.name_any());
 
-    let network = &crd.spec.network;
-    let version = &crd.spec.version;
     let password = format!("{}{}", name, namespace).as_bytes().to_vec();
 
     let config = get_config();
@@ -50,7 +49,7 @@ pub async fn build_api_key(crd: &CardanoNodePort) -> Result<String, Error> {
     let argon2 = Argon2::default();
     argon2.hash_password_into(password.as_slice(), salt, &mut output)?;
 
-    let hrp = Hrp::parse(&format!("dmtr_cnode_{version}_{network}_"))?;
+    let hrp = Hrp::parse("cnode")?;
     let with_bech = bech32::encode::<Bech32m>(hrp, output.as_slice())?;
 
     Ok(with_bech)
