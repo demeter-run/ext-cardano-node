@@ -85,3 +85,7 @@ variable "dns_zone" {
 variable "healthcheck_port" {
   type = number
 }
+
+variable "cloud_provider" {
+  type = string
+}

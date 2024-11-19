@@ -1,3 +1,8 @@
+variable "cloud_provider" {
+  type    = string
+  default = "aws"
+}
+
 variable "namespace" {
   type = string
 }
