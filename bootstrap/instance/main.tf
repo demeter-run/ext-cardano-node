@@ -95,3 +95,14 @@ variable "is_custom" {
 variable "is_relay" {
   default = false
 }
+
+variable "tolerations" {
+  description = "List of tolerations for the node"
+  type = list(object({
+    effect   = string
+    key      = string
+    operator = string
+    value    = string
+  }))
+  default = []
+}
