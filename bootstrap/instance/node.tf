@@ -24,6 +24,29 @@ locals {
   arguments = var.network == "vector-testnet" ? [] : var.is_custom == true ? local.custom_arguments : local.default_arguments
 
   n2n_port_name = var.is_relay == true ? "n2n-${var.network}" : "n2n"
+
+  default_tolerations = [
+    {
+      effect   = "NoSchedule"
+      key      = "demeter.run/compute-profile"
+      operator = "Equal"
+      value    = var.compute_profile
+    },
+    {
+      effect   = "NoSchedule"
+      key      = "demeter.run/compute-arch"
+      operator = "Equal"
+      value    = var.compute_arch
+    },
+    {
+      effect   = "NoSchedule"
+      key      = "demeter.run/availability-sla"
+      operator = "Equal"
+      value    = var.availability_sla
+    }
+  ]
+
+  combined_tolerations = concat(local.default_tolerations, var.tolerations)
 }
 
 
@@ -113,25 +136,14 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
         }
 
-        toleration {
-          effect   = "NoSchedule"
-          key      = "demeter.run/compute-profile"
-          operator = "Equal"
-          value    = var.compute_profile
-        }
-
-        toleration {
-          effect   = "NoSchedule"
-          key      = "demeter.run/compute-arch"
-          operator = "Equal"
-          value    = var.compute_arch
-        }
-
-        toleration {
-          effect   = "NoSchedule"
-          key      = "demeter.run/availability-sla"
-          operator = "Equal"
-          value    = var.availability_sla
+        dynamic "toleration" {
+          for_each = local.combined_tolerations
+          content {
+            effect   = toleration.value.effect
+            key      = toleration.value.key
+            operator = toleration.value.operator
+            value    = toleration.value.value
+          }
         }
 
         volume {

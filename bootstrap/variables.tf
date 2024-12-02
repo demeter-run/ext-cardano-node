@@ -160,6 +160,12 @@ variable "instances" {
     availability_sla   = optional(string)
     is_custom          = optional(bool)
     is_relay           = optional(bool, false)
+    tolerations = optional(list(object({
+      effect   = string
+      key      = string
+      operator = string
+      value    = string
+    })), [])
   }))
 }
 
