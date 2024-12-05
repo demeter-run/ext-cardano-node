@@ -84,6 +84,7 @@ module "instances" {
   restore            = coalesce(each.value.restore, false)
   is_custom          = coalesce(each.value.is_custom, false)
   is_relay           = coalesce(each.value.is_relay, false)
+  tolerations        = coalesce(each.value.tolerations, [])
 }
 
 module "custom_configs" {
