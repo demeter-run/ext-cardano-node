@@ -32,6 +32,7 @@ module "node_v1_proxy_blue" {
   cloud_provider      = var.cloud_provider
   environment         = "blue"
   name                = "proxy-blue"
+  tolerations         = var.proxy_blue_tolerations
 }
 
 module "node_v1_proxy_green" {
@@ -48,6 +49,7 @@ module "node_v1_proxy_green" {
   cloud_provider      = var.cloud_provider
   environment         = "green"
   name                = "proxy-green"
+  tolerations         = var.proxy_green_tolerations
 }
 
 
