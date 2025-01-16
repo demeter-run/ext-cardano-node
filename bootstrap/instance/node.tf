@@ -169,11 +169,15 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
         }
 
-        volume {
-          name = "node-readiness"
-          config_map {
-            name         = "node-readiness"
-            default_mode = "0500"
+        dynamic "volume" {
+          for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
+
+          content {
+            name = "node-readiness"
+            config_map {
+              name         = "node-readiness"
+              default_mode = "0500"
+            }
           }
         }
 
@@ -193,14 +197,22 @@ resource "kubernetes_stateful_set_v1" "node" {
             value = var.restore
           }
 
-          env {
-            name  = "CARDANO_NODE_SOCKET_PATH"
-            value = "/ipc/node.socket"
+          dynamic "env" {
+            for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
+
+            content {
+              name  = "CARDANO_NODE_SOCKET_PATH"
+              value = "/ipc/node.socket"
+            }
           }
 
-          env {
-            name  = "CARDANO_NODE_NETWORK_ID"
-            value = var.magic
+          dynamic "env" {
+            for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
+
+            content {
+              name  = "CARDANO_NODE_NETWORK_ID"
+              value = var.magic
+            }
           }
 
           dynamic "env" {
@@ -245,9 +257,13 @@ resource "kubernetes_stateful_set_v1" "node" {
             name       = "ipc"
           }
 
-          volume_mount {
-            mount_path = "/probes"
-            name       = "node-readiness"
+          dynamic "volume_mount" {
+            for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
+
+            content {
+              mount_path = "/probes"
+              name       = "node-readiness"
+            }
           }
 
           dynamic "volume_mount" {
@@ -265,7 +281,11 @@ resource "kubernetes_stateful_set_v1" "node" {
             content {
               initial_delay_seconds = 20
               exec {
-                command = ["/probes/readiness.sh"]
+                command = (
+                  var.network == "prime-testnet"
+                  ? ["test", "-S", "/ipc/node.socket"]
+                  : ["/probes/readiness.sh"]
+                )
               }
             }
           }
