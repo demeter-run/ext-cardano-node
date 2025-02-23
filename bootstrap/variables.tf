@@ -65,14 +65,10 @@ variable "operator_resources" {
   }
 }
 
-// Proxy
-variable "proxy_green_image_tag" {
-  type = string
-}
-
-variable "proxy_green_replicas" {
-  type    = number
-  default = 1
+// Proxy green
+variable "proxy_green_extra_annotations" {
+  type    = map(string)
+  default = {}
 }
 
 variable "proxy_green_healthcheck_port" {
@@ -81,17 +77,23 @@ variable "proxy_green_healthcheck_port" {
   default     = null
 }
 
+variable "proxy_green_image_tag" {
+  type = string
+}
+
 variable "proxy_green_instances_namespace" {
   type = string
 }
 
-variable "proxy_blue_image_tag" {
-  type = string
-}
-
-variable "proxy_blue_replicas" {
+variable "proxy_green_replicas" {
   type    = number
   default = 1
+}
+
+// Proxy blue
+variable "proxy_blue_extra_annotations" {
+  type    = map(string)
+  default = {}
 }
 
 variable "proxy_blue_healthcheck_port" {
@@ -100,10 +102,20 @@ variable "proxy_blue_healthcheck_port" {
   default     = null
 }
 
+variable "proxy_blue_image_tag" {
+  type = string
+}
+
 variable "proxy_blue_instances_namespace" {
   type = string
 }
 
+variable "proxy_blue_replicas" {
+  type    = number
+  default = 1
+}
+
+// Proxy
 variable "proxy_resources" {
   type = object({
     limits = object({

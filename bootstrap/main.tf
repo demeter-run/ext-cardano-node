@@ -24,6 +24,7 @@ module "node_v1_proxy_blue" {
   namespace           = var.namespace
   replicas            = var.proxy_blue_replicas
   extension_name      = var.extension_name
+  extra_annotations   = var.proxy_blue_extra_annotations
   dns_zone            = var.dns_zone
   proxy_image_tag     = var.proxy_blue_image_tag
   resources           = var.proxy_resources
@@ -41,6 +42,7 @@ module "node_v1_proxy_green" {
   namespace           = var.namespace
   replicas            = var.proxy_green_replicas
   extension_name      = var.extension_name
+  extra_annotations   = var.proxy_green_extra_annotations
   dns_zone            = var.dns_zone
   proxy_image_tag     = var.proxy_green_image_tag
   resources           = var.proxy_resources
