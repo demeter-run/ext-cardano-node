@@ -3,14 +3,16 @@ resource "kubernetes_service_v1" "proxy_service_aws" {
   metadata {
     name      = local.name
     namespace = var.namespace
-    annotations = {
+    annotations = merge({
       "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" : "instance"
       "service.beta.kubernetes.io/aws-load-balancer-scheme" : "internet-facing"
       "service.beta.kubernetes.io/aws-load-balancer-type" : "external"
       "service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol" : "HTTP"
       "service.beta.kubernetes.io/aws-load-balancer-healthcheck-path" : "/health"
       "service.beta.kubernetes.io/aws-load-balancer-healthcheck-port" : var.healthcheck_port != null ? var.healthcheck_port : "traffic-port"
-    }
+      },
+      var.extra_annotations
+    )
   }
 
   spec {
@@ -40,9 +42,11 @@ resource "kubernetes_service_v1" "proxy_service_gcp" {
   metadata {
     name      = local.name
     namespace = var.namespace
-    annotations = {
+    annotations = merge({
       "cloud.google.com/l4-rbs" : "enabled"
-    }
+      },
+      var.extra_annotations
+    )
   }
 
   spec {
