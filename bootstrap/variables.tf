@@ -205,13 +205,12 @@ variable "proxy_blue_tolerations" {
 
 variable "instances" {
   type = map(object({
-    node_image    = string
-    image_tag     = string
-    network       = string
-    salt          = string
-    release       = string
-    magic         = number
-    topology_zone = string
+    node_image = string
+    image_tag  = string
+    network    = string
+    salt       = string
+    release    = string
+    magic      = number
     node_resources = optional(object({
       limits = object({
         cpu    = string
@@ -238,6 +237,44 @@ variable "instances" {
       operator = string
       value    = string
     })), [])
+    node_affinity = optional(object({
+      required_during_scheduling_ignored_during_execution = optional(
+        object({
+          node_selector_term = optional(
+            list(object({
+              match_expressions = optional(
+                list(object({
+                  key      = string
+                  operator = string
+                  values   = list(string)
+                })), []
+              )
+            })), []
+          )
+        }), {}
+      )
+      preferred_during_scheduling_ignored_during_execution = optional(
+        list(object({
+          weight = number
+          preference = object({
+            match_expressions = optional(
+              list(object({
+                key      = string
+                operator = string
+                values   = list(string)
+              })), []
+            )
+            match_fields = optional(
+              list(object({
+                key      = string
+                operator = string
+                values   = list(string)
+              })), []
+            )
+          })
+        })), []
+      )
+    }))
   }))
 }
 
