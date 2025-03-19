@@ -79,7 +79,6 @@ module "instances" {
   release            = each.value.release
   network            = each.value.network
   magic              = each.value.magic
-  topology_zone      = each.value.topology_zone
   salt               = each.value.salt
   compute_arch       = coalesce(each.value.compute_arch, "arm64")
   compute_profile    = coalesce(each.value.compute_profile, "mem-intensive")
@@ -89,6 +88,10 @@ module "instances" {
   is_custom          = coalesce(each.value.is_custom, false)
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
+  node_affinity = coalesce(each.value.node_affinity, {
+    required_during_scheduling_ignored_during_execution  = {}
+    preferred_during_scheduling_ignored_during_execution = []
+  })
 }
 
 module "custom_configs" {
