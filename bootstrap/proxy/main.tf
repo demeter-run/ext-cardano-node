@@ -83,6 +83,12 @@ variable "extra_annotations" {
   default     = {}
 }
 
+variable "dns_names" {
+  description = "List of DNS names for the certificate"
+  type        = list(string)
+  default     = null
+}
+
 variable "dns_zone" {
   type    = string
   default = "demeter.run"
