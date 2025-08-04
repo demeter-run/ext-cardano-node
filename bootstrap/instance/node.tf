@@ -207,28 +207,11 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "env" {
-            for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
+            for_each = (var.network == "prime-testnet" || var.network == "vector-testnet") ? toset([1]) : toset([])
 
             content {
               name  = "CARDANO_NODE_NETWORK_ID"
               value = var.magic
-            }
-          }
-
-          dynamic "env" {
-            for_each = var.network == "vector-testnet" ? toset([1]) : toset([])
-
-            content {
-              name  = "PORT"
-              value = "3000"
-            }
-          }
-
-          dynamic "env" {
-            for_each = var.network == "vector-testnet" ? toset([1]) : toset([])
-            content {
-              name  = "NETWORK"
-              value = "testnet"
             }
           }
 
