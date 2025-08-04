@@ -258,7 +258,7 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "env" {
-            for_each = (var.network == "prime-testnet" || var.network == "vector-testnet") ? toset([1]) : toset([])
+            for_each = contains(["vector-testnet", "prime-testnet"], var.network) ? toset([]) : toset([1])
 
             content {
               name  = "CARDANO_NODE_NETWORK_ID"
