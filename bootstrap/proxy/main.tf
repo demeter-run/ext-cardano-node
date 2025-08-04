@@ -77,6 +77,18 @@ variable "extension_name" {
   type = string
 }
 
+variable "extra_annotations" {
+  description = "Extra annotations to add to the proxy services"
+  type        = map(string)
+  default     = {}
+}
+
+variable "dns_names" {
+  description = "List of DNS names for the certificate"
+  type        = list(string)
+  default     = null
+}
+
 variable "dns_zone" {
   type    = string
   default = "demeter.run"

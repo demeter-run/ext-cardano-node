@@ -7,6 +7,12 @@ variable "namespace" {
   type = string
 }
 
+variable "dns_names" {
+  description = "List of DNS names for the certificate"
+  type        = list(string)
+  default     = null
+}
+
 variable "dns_zone" {
   type    = string
   default = "demeter.run"
@@ -65,14 +71,10 @@ variable "operator_resources" {
   }
 }
 
-// Proxy
-variable "proxy_green_image_tag" {
-  type = string
-}
-
-variable "proxy_green_replicas" {
-  type    = number
-  default = 1
+// Proxy green
+variable "proxy_green_extra_annotations" {
+  type    = map(string)
+  default = {}
 }
 
 variable "proxy_green_healthcheck_port" {
@@ -81,17 +83,23 @@ variable "proxy_green_healthcheck_port" {
   default     = null
 }
 
+variable "proxy_green_image_tag" {
+  type = string
+}
+
 variable "proxy_green_instances_namespace" {
   type = string
 }
 
-variable "proxy_blue_image_tag" {
-  type = string
-}
-
-variable "proxy_blue_replicas" {
+variable "proxy_green_replicas" {
   type    = number
   default = 1
+}
+
+// Proxy blue
+variable "proxy_blue_extra_annotations" {
+  type    = map(string)
+  default = {}
 }
 
 variable "proxy_blue_healthcheck_port" {
@@ -100,10 +108,20 @@ variable "proxy_blue_healthcheck_port" {
   default     = null
 }
 
+variable "proxy_blue_image_tag" {
+  type = string
+}
+
 variable "proxy_blue_instances_namespace" {
   type = string
 }
 
+variable "proxy_blue_replicas" {
+  type    = number
+  default = 1
+}
+
+// Proxy
 variable "proxy_resources" {
   type = object({
     limits = object({
@@ -193,13 +211,12 @@ variable "proxy_blue_tolerations" {
 
 variable "instances" {
   type = map(object({
-    node_image    = string
-    image_tag     = string
-    network       = string
-    salt          = string
-    release       = string
-    magic         = number
-    topology_zone = string
+    node_image = string
+    image_tag  = string
+    network    = string
+    salt       = string
+    release    = string
+    magic      = number
     node_resources = optional(object({
       limits = object({
         cpu    = string
@@ -226,6 +243,44 @@ variable "instances" {
       operator = string
       value    = string
     })), [])
+    node_affinity = optional(object({
+      required_during_scheduling_ignored_during_execution = optional(
+        object({
+          node_selector_term = optional(
+            list(object({
+              match_expressions = optional(
+                list(object({
+                  key      = string
+                  operator = string
+                  values   = list(string)
+                })), []
+              )
+            })), []
+          )
+        }), {}
+      )
+      preferred_during_scheduling_ignored_during_execution = optional(
+        list(object({
+          weight = number
+          preference = object({
+            match_expressions = optional(
+              list(object({
+                key      = string
+                operator = string
+                values   = list(string)
+              })), []
+            )
+            match_fields = optional(
+              list(object({
+                key      = string
+                operator = string
+                values   = list(string)
+              })), []
+            )
+          })
+        })), []
+      )
+    }))
   }))
 }
 

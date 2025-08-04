@@ -24,7 +24,9 @@ module "node_v1_proxy_blue" {
   namespace           = var.namespace
   replicas            = var.proxy_blue_replicas
   extension_name      = var.extension_name
+  extra_annotations   = var.proxy_blue_extra_annotations
   dns_zone            = var.dns_zone
+  dns_names           = var.dns_names
   proxy_image_tag     = var.proxy_blue_image_tag
   resources           = var.proxy_resources
   instances_namespace = var.proxy_blue_instances_namespace
@@ -41,7 +43,9 @@ module "node_v1_proxy_green" {
   namespace           = var.namespace
   replicas            = var.proxy_green_replicas
   extension_name      = var.extension_name
+  extra_annotations   = var.proxy_green_extra_annotations
   dns_zone            = var.dns_zone
+  dns_names           = var.dns_names
   proxy_image_tag     = var.proxy_green_image_tag
   resources           = var.proxy_resources
   instances_namespace = var.proxy_green_instances_namespace
@@ -77,7 +81,6 @@ module "instances" {
   release            = each.value.release
   network            = each.value.network
   magic              = each.value.magic
-  topology_zone      = each.value.topology_zone
   salt               = each.value.salt
   compute_arch       = coalesce(each.value.compute_arch, "arm64")
   compute_profile    = coalesce(each.value.compute_profile, "mem-intensive")
@@ -87,6 +90,10 @@ module "instances" {
   is_custom          = coalesce(each.value.is_custom, false)
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
+  node_affinity = coalesce(each.value.node_affinity, {
+    required_during_scheduling_ignored_during_execution  = {}
+    preferred_during_scheduling_ignored_during_execution = []
+  })
 }
 
 module "custom_configs" {
