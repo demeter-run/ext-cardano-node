@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use futures_util::future::join_all;
 use leaky_bucket::RateLimiter;
+use openssl::ssl::NameType;
 use pingora::{
     apps::ServerApp, connectors::TransportConnector, protocols::Stream, server::ShutdownWatch,
-    tls::ssl::NameType, upstreams::peer::BasicPeer, Error, Result,
+    upstreams::peer::BasicPeer, Error, Result,
 };
 use regex::Regex;
 use std::{net::SocketAddr, sync::Arc};
@@ -175,8 +176,7 @@ impl ProxyApp {
 
             let refreshed_consumer = match self.state.get_consumer(&consumer.key).await {
                 Some(consumer) => consumer,
-
-                // Port was deleted.
+                // Port was deleted
                 None => return Err(Error::new(pingora::ErrorType::ConnectRefused)),
             };
 
@@ -202,19 +202,16 @@ impl ProxyApp {
         if tier.is_none() {
             return Err(Error::new(pingora::ErrorType::AcceptError));
         }
-        let tier = tier.unwrap().clone();
-        Ok(tier)
+        Ok(tier.unwrap().clone())
     }
 
     async fn limiter_connection(&self, consumer: &Consumer) -> Result<()> {
         let tier = self.get_tier(&consumer.tier).await?;
-
         if consumer.active_connections >= tier.max_connections {
             return Err(Error::new(pingora::ErrorType::Custom(
                 "Connections tier exceeded for consumer",
             )));
         }
-
         Ok(())
     }
 }
@@ -226,13 +223,18 @@ impl ServerApp for ProxyApp {
         io_client: Stream,
         _shutdown: &ShutdownWatch,
     ) -> Option<Stream> {
-        let hostname = io_client.get_ssl()?.servername(NameType::HOST_NAME);
+        // Pingora 0.5: get SNI from TLS ref
+        let hostname = io_client
+            .get_ssl()
+            .and_then(|tls| tls.servername_raw(NameType::HOST_NAME))
+            .and_then(|b| std::str::from_utf8(b).ok());
         if hostname.is_none() {
             error!("hostname is not present in the certificate");
             return None;
         }
+        let hostname = hostname.unwrap();
 
-        let captures_result = self.host_regex.captures(hostname?);
+        let captures_result = self.host_regex.captures(hostname);
         if captures_result.is_none() {
             error!("invalid hostname pattern");
             return None;
@@ -260,9 +262,9 @@ impl ServerApp for ProxyApp {
                 .count_total_connections_denied(&consumer, &namespace, &instance);
 
             let tier_result = self.get_tier(&consumer.tier).await;
-            if let Err(err) = tier_result {
+            if let Err(err2) = tier_result {
                 error!(
-                    error = err.to_string(),
+                    error = err2.to_string(),
                     consumer = consumer.to_string(),
                     "Error to get the tier"
                 );
@@ -302,7 +304,6 @@ impl ServerApp for ProxyApp {
                 {
                     error!(error = err.to_string(), "proxy duplex error");
                 }
-
                 None
             }
             Err(e) => {

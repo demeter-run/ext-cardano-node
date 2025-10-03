@@ -1,11 +1,10 @@
-use std::{collections::HashMap, error::Error, fmt::Display, sync::Arc, time::Duration};
+use std::{collections::HashMap, error::Error, sync::Arc, time::Duration};
 
 use auth::AuthBackgroundService;
 use dotenv::dotenv;
 use leaky_bucket::RateLimiter;
 use operator::{kube::ResourceExt, CardanoNodePort};
 use pingora::{
-    listeners::Listeners,
     server::{configuration::Opt, Server},
     services::{background::background_service, listening::Service},
 };
@@ -57,20 +56,21 @@ fn main() {
     );
     server.add_service(tier_background_service);
 
+    // Proxy listener using Service::with_listeners for TLS
     let tls_proxy_service = Service::with_listeners(
         "TLS Proxy Service".to_string(),
-        Listeners::tls(
+        pingora::listeners::Listeners::tls(
             &config.proxy_addr,
             &config.ssl_crt_path,
             &config.ssl_key_path,
         )
         .unwrap(),
-        Arc::new(ProxyApp::new(config.clone(), state)),
+        ProxyApp::new(config.clone(), state.clone()),
     );
     server.add_service(tls_proxy_service);
 
-    let mut prometheus_service_http =
-        pingora::services::listening::Service::prometheus_http_service();
+    // Prometheus endpoint — use the helper from pingora_core
+    let mut prometheus_service_http = Service::prometheus_http_service();
     prometheus_service_http.add_tcp(&config.prometheus_addr);
     server.add_service(prometheus_service_http);
 
@@ -132,7 +132,7 @@ impl Consumer {
             .write()
             .await
             .entry(self.key.clone())
-            .and_modify(|consumer| consumer.active_connections += 1);
+            .and_modify(|c| c.active_connections += 1);
     }
     pub async fn dec_connections(&mut self, state: Arc<State>) {
         state
@@ -140,7 +140,7 @@ impl Consumer {
             .write()
             .await
             .entry(self.key.clone())
-            .and_modify(|consumer| consumer.active_connections -= 1);
+            .and_modify(|c| c.active_connections -= 1);
     }
     pub async fn get_active_connections(&self, state: Arc<State>) -> usize {
         state
@@ -148,11 +148,11 @@ impl Consumer {
             .read()
             .await
             .get(&self.key)
-            .map(|consumer| consumer.active_connections)
+            .map(|c| c.active_connections)
             .unwrap_or_default()
     }
 }
-impl Display for Consumer {
+impl std::fmt::Display for Consumer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}", self.namespace, self.port_name)
     }
@@ -175,14 +175,10 @@ pub fn deserialize_duration<'de, D: Deserializer<'de>>(
 ) -> Result<Duration, D::Error> {
     let value: String = Deserialize::deserialize(deserializer)?;
     let regex = Regex::new(r"([\d]+)([\w])").unwrap();
-    let captures = regex.captures(&value);
-    if captures.is_none() {
-        return Err(<D::Error as serde::de::Error>::custom(
-            "Invalid tier interval format",
-        ));
-    }
+    let captures = regex
+        .captures(&value)
+        .ok_or_else(|| <D::Error as serde::de::Error>::custom("Invalid tier interval format"))?;
 
-    let captures = captures.unwrap();
     let number = captures.get(1).unwrap().as_str().parse::<u64>().unwrap();
     let symbol = captures.get(2).unwrap().as_str();
 
@@ -206,13 +202,13 @@ pub struct Metrics {
 impl Metrics {
     pub fn new() -> Self {
         let total_connections = register_int_gauge_vec!(
-            opts!("node_proxy_total_connections", "Total connections",),
+            opts!("node_proxy_total_connections", "Total connections"),
             &["consumer", "namespace", "instance", "tier"]
         )
         .unwrap();
 
         let total_packages_bytes = register_int_counter_vec!(
-            opts!("node_proxy_total_packages_bytes", "Total bytes transferred",),
+            opts!("node_proxy_total_packages_bytes", "Total bytes transferred"),
             &["consumer", "namespace", "instance", "tier"]
         )
         .unwrap();
@@ -220,7 +216,7 @@ impl Metrics {
         let total_connections_denied = register_int_counter_vec!(
             opts!(
                 "node_proxy_total_connections_denied",
-                "Total denied connections",
+                "Total denied connections"
             ),
             &["consumer", "namespace", "instance", "tier"]
         )
@@ -240,31 +236,52 @@ impl Metrics {
         instance: &str,
         value: usize,
     ) {
+        let consumer_label = consumer.to_string();
         self.total_packages_bytes
-            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
+            .with_label_values(&[
+                consumer_label.as_str(),
+                namespace,
+                instance,
+                consumer.tier.as_str(),
+            ])
             .inc_by(value as u64)
     }
-
     pub fn inc_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
+        let consumer_label = consumer.to_string();
         self.total_connections
-            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
+            .with_label_values(&[
+                consumer_label.as_str(),
+                namespace,
+                instance,
+                consumer.tier.as_str(),
+            ])
             .inc()
     }
-
     pub fn dec_total_connections(&self, consumer: &Consumer, namespace: &str, instance: &str) {
+        let consumer_label = consumer.to_string();
         self.total_connections
-            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
+            .with_label_values(&[
+                consumer_label.as_str(),
+                namespace,
+                instance,
+                consumer.tier.as_str(),
+            ])
             .dec()
     }
-
     pub fn count_total_connections_denied(
         &self,
         consumer: &Consumer,
         namespace: &str,
         instance: &str,
     ) {
+        let consumer_label = consumer.to_string();
         self.total_connections_denied
-            .with_label_values(&[&consumer.to_string(), namespace, instance, &consumer.tier])
+            .with_label_values(&[
+                consumer_label.as_str(),
+                namespace,
+                instance,
+                consumer.tier.as_str(),
+            ])
             .inc()
     }
 }
