@@ -69,9 +69,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - tags: ghcr.io/demeter-run/ext-cardano-kupo-operator,ghcr.io/demeter-run/ext-cardano-kupo-operator:${{ github.sha }}
+          - tags: ghcr.io/demeter-run/ext-cardano-node-operator,ghcr.io/demeter-run/ext-cardano-node-operator:${{ github.sha }}
             binary: controller
-          - tags: ghcr.io/demeter-run/ext-cardano-kupo-proxy,ghcr.io/demeter-run/ext-cardano-kupo-proxy:${{ github.sha }}
+          - tags: ghcr.io/demeter-run/ext-cardano-node-proxy,ghcr.io/demeter-run/ext-cardano-node-proxy:${{ github.sha }}
             binary: proxy
 
     permissions:
