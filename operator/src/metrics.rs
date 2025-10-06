@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, str::FromStr, sync::Arc};
+use std::{borrow::Cow, net::SocketAddr, str::FromStr, sync::Arc};
 
 use chrono::Utc;
 use http_body_util::{combinators::BoxBody, BodyExt, Full};
@@ -74,13 +74,13 @@ impl Metrics {
 
     pub fn reconcile_failure(&self, crd: &CardanoNodePort, e: &Error) {
         self.reconcile_failures
-            .with_label_values(&[crd.name_any().as_ref(), e.metric_label().as_ref()])
+            .with_label_values::<&str>(&[crd.name_any().as_ref(), e.metric_label().as_ref()])
             .inc()
     }
 
     pub fn metrics_failure(&self, e: &Error) {
         self.metrics_failures
-            .with_label_values(&[e.metric_label().as_ref()])
+            .with_label_values::<&str>(&[e.metric_label().as_ref()])
             .inc()
     }
 
@@ -96,7 +96,7 @@ impl Metrics {
         let dcu: u64 = dcu.ceil() as u64;
 
         self.dcu
-            .with_label_values(&[project, &service, &service_type, tenancy])
+            .with_label_values::<&str>(&[project, &service, &service_type, tenancy])
             .inc_by(dcu);
     }
 
@@ -104,9 +104,14 @@ impl Metrics {
         let feature = &CardanoNodePort::kind(&());
         let value: u64 = value.ceil() as u64;
 
-        self.usage
-            .with_label_values(&[feature, project, resource_name, tier])
-            .inc_by(value);
+        let labels: [Cow<str>; 4] = [
+            Cow::Borrowed(feature),
+            Cow::Borrowed(project),
+            Cow::Borrowed(resource_name),
+            Cow::Borrowed(tier),
+        ];
+
+        self.usage.with_label_values(&labels).inc_by(value);
     }
 }
 

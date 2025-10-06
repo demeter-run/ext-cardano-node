@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
@@ -46,27 +46,35 @@ impl BackgroundService for AuthBackgroundService {
         loop {
             let result = stream.try_next().await;
             match result {
-                // Stream restart, also run on startup.
-                Ok(Some(Event::Restarted(crds))) => {
-                    info!("auth: Watcher restarted, reseting consumers");
-
-                    let mut consumers: HashMap<Vec<u8>, Consumer> = Default::default();
-                    for crd in crds.iter() {
-                        let result = Consumer::new(crd);
+                // Initial list of resources
+                Ok(Some(Event::Init)) => {
+                    info!("auth: Watcher initialized");
+                }
+                // Initial apply of resources
+                Ok(Some(Event::InitApply(crd))) => {
+                    info!("auth: Initial apply for: {}", crd.name_any());
+                    // Handle initial resource like a new/modified one
+                    if crd.status.is_some() {
+                        let result = Consumer::new(&crd);
                         if let Err(error) = result {
                             error!(?error, "invalid consumer");
                             continue;
                         }
 
                         let consumer = self.sync_consumer(result.unwrap()).await;
-                        consumers.insert(consumer.key.clone(), consumer);
+                        self.state
+                            .consumers
+                            .write()
+                            .await
+                            .insert(consumer.key.clone(), consumer);
                     }
-
-                    *self.state.consumers.write().await = consumers;
-                    self.state.limiter.write().await.clear();
+                }
+                // Initial sync done
+                Ok(Some(Event::InitDone)) => {
+                    info!("auth: Initial sync completed");
                 }
                 // New port created or updated.
-                Ok(Some(Event::Applied(crd))) => match crd.status {
+                Ok(Some(Event::Apply(crd))) => match crd.status {
                     Some(_) => {
                         info!("auth: Adding new consumer: {}", crd.name_any());
 
@@ -87,12 +95,12 @@ impl BackgroundService for AuthBackgroundService {
                     }
                     None => {
                         // New ports are created without status. When the status is added, a new
-                        // Applied event is triggered.
+                        // Modified event is triggered.
                         info!("auth: New port created: {}", crd.name_any());
                     }
                 },
                 // Port deleted.
-                Ok(Some(Event::Deleted(crd))) => {
+                Ok(Some(Event::Delete(crd))) => {
                     info!(
                         "auth: Port deleted, removing from state: {}",
                         crd.name_any()
