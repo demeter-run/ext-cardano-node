@@ -15,7 +15,7 @@ tracing-subscriber = {version = "0.3.18", features = ["env-filter"]}
 futures-util = "0.3.30"
 pingora = { version = "0.6.0", features = ["openssl"] }
 pingora-limits = "0.6.0"
-prometheus = "0.14.0"
+prometheus = "0.13.0"
 async-trait = "0.1.77"
 leaky-bucket = "1.0.1"
 serde = { version = "1.0.197", features = ["derive"] }
