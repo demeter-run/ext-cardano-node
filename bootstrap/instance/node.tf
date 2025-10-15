@@ -21,7 +21,7 @@ locals {
     "--port",
     "3000"
   ]
-  arguments = var.network == "vector-testnet" ? [] : var.is_custom == true ? local.custom_arguments : local.default_arguments
+  arguments = startswith(var.network, "vector") ? [] : var.is_custom == true ? local.custom_arguments : local.default_arguments
 
   n2n_port_name = var.is_relay == true ? "n2n-${var.network}" : "n2n"
 
@@ -249,6 +249,15 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "env" {
+            for_each = startswith(var.network, "vector") ? toset([1]) : toset([])
+
+            content {
+              name  = "NETWORK"
+              value = var.network
+            }
+          }
+
+          dynamic "env" {
             for_each = var.network != "prime-testnet" ? toset([1]) : toset([])
 
             content {
@@ -258,7 +267,7 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "env" {
-            for_each = contains(["vector-testnet", "prime-testnet"], var.network) ? toset([]) : toset([1])
+            for_each = contains(["vector-testnet", "vector-mainnet", "prime-testnet"], var.network) ? toset([]) : toset([1])
 
             content {
               name  = "CARDANO_NODE_NETWORK_ID"
@@ -310,7 +319,7 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "readiness_probe" {
-            for_each = var.network != "vector-testnet" ? toset([1]) : toset([])
+            for_each = startswith(var.network, "vector") ? toset([]) : toset([1])
 
             content {
               initial_delay_seconds = 20
