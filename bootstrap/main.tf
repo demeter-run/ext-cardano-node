@@ -114,6 +114,7 @@ module "services" {
   for_each   = var.services
   source     = "./service"
 
+  name         = each.value.name
   namespace    = var.namespace
   network      = each.value.network
   release      = each.value.release

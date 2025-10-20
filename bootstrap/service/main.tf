@@ -2,6 +2,11 @@ variable "namespace" {
   description = "the namespace where the resources will be created"
 }
 
+variable "name" {
+  description = "name of the service"
+  default     = null
+}
+
 variable "network" {
   description = "the network where the resources will be created"
 }
@@ -34,7 +39,7 @@ locals {
 
 resource "kubernetes_service_v1" "well_known_service" {
   metadata {
-    name      = "node-${var.network}-${var.release}"
+    name      = coalesce(var.name, "node-${var.network}-${var.release}")
     namespace = var.namespace
   }
 

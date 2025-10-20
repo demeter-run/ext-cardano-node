@@ -286,6 +286,7 @@ variable "instances" {
 
 variable "services" {
   type = map(object({
+    name         = optional(string)
     network      = string
     release      = string
     node_version = string
