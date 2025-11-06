@@ -323,6 +323,7 @@ resource "kubernetes_stateful_set_v1" "node" {
 
             content {
               initial_delay_seconds = 20
+              timeout_seconds       = 5
               exec {
                 command = (
                   var.network == "prime-testnet"
