@@ -319,11 +319,15 @@ resource "kubernetes_stateful_set_v1" "node" {
           }
 
           dynamic "readiness_probe" {
-            for_each = startswith(var.network, "vector") ? toset([]) : toset([1])
+            for_each = var.readiness_probe != null ? toset([1]) : toset([])
 
             content {
-              initial_delay_seconds = 20
-              timeout_seconds       = 5
+              failure_threshold     = coalesce(var.readiness_probe.failure_threshold, 10)
+              initial_delay_seconds = coalesce(var.readiness_probe.initial_delay_seconds, 10)
+              period_seconds        = coalesce(var.readiness_probe.period_seconds, 20)
+              success_threshold     = coalesce(var.readiness_probe.success_threshold, 1)
+              timeout_seconds       = coalesce(var.readiness_probe.timeout_seconds, 5)
+
               exec {
                 command = (
                   var.network == "prime-testnet"

@@ -90,6 +90,7 @@ module "instances" {
   is_custom          = coalesce(each.value.is_custom, false)
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
+  readiness_probe    = each.value.readiness_probe
   node_affinity = coalesce(each.value.node_affinity, {
     required_during_scheduling_ignored_during_execution  = {}
     preferred_during_scheduling_ignored_during_execution = []

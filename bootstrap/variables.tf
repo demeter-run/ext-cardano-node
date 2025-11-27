@@ -237,6 +237,13 @@ variable "instances" {
     availability_sla   = optional(string)
     is_custom          = optional(bool)
     is_relay           = optional(bool, false)
+    readiness_probe = optional(list(object({
+      failure_threshold     = optional(number)
+      initial_delay_seconds = optional(number)
+      period_seconds        = optional(number)
+      success_threshold     = optional(number)
+      timeout_seconds       = optional(number)
+    })))
     tolerations = optional(list(object({
       effect   = string
       key      = string
