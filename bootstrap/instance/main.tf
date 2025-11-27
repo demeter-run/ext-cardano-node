@@ -138,14 +138,14 @@ variable "is_relay" {
 
 variable "readiness_probe" {
   description = "When enabled, configures a readiness probe for the node."
-  type = list(object({
+  type = object({
     failure_threshold     = optional(number)
     initial_delay_seconds = optional(number)
     period_seconds        = optional(number)
     success_threshold     = optional(number)
     timeout_seconds       = optional(number)
-  }))
-  default = []
+  })
+  default = null
 }
 
 variable "tolerations" {
