@@ -237,6 +237,7 @@ variable "instances" {
     availability_sla   = optional(string)
     is_custom          = optional(bool)
     is_relay           = optional(bool, false)
+    rts_opts           = optional(string)
     readiness_probe = optional(object({
       failure_threshold     = optional(number)
       initial_delay_seconds = optional(number)

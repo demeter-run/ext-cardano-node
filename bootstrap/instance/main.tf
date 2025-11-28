@@ -136,6 +136,11 @@ variable "is_relay" {
   default = false
 }
 
+variable "rts_opts" {
+  type    = string
+  default = null
+}
+
 variable "readiness_probe" {
   description = "When enabled, configures a readiness probe for the node."
   type = object({

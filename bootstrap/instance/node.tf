@@ -275,6 +275,15 @@ resource "kubernetes_stateful_set_v1" "node" {
             }
           }
 
+          dynamic "env" {
+            for_each = var.rts_opts != null ? toset([1]) : toset([])
+
+            content {
+              name  = "CARDANO_RTS_OPTS"
+              value = var.rts_opts
+            }
+          }
+
           resources {
             limits   = var.node_resources.limits
             requests = var.node_resources.requests
