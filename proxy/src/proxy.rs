@@ -6,6 +6,7 @@ use pingora::{
     apps::ServerApp, connectors::TransportConnector, protocols::Stream, server::ShutdownWatch,
     upstreams::peer::BasicPeer, Error, Result,
 };
+use rand::{seq::IndexedRandom, SeedableRng};
 use regex::Regex;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
@@ -290,7 +291,8 @@ impl ServerApp for ProxyApp {
             return None;
         }
         let lookup: Vec<SocketAddr> = lookup_result.unwrap().collect();
-        let node_addr = lookup.first()?;
+        let mut rng = rand::rngs::StdRng::from_os_rng();
+        let node_addr = lookup.choose(&mut rng)?;
 
         let proxy_to = BasicPeer::new(&node_addr.to_string());
 
