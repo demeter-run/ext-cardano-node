@@ -92,6 +92,7 @@ module "instances" {
   tolerations        = coalesce(each.value.tolerations, [])
   readiness_probe    = each.value.readiness_probe
   liveness_probe     = each.value.liveness_probe
+  startup_probe      = each.value.startup_probe
   rts_opts           = each.value.rts_opts
   node_affinity = coalesce(each.value.node_affinity, {
     required_during_scheduling_ignored_during_execution  = {}
