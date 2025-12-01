@@ -346,6 +346,26 @@ resource "kubernetes_stateful_set_v1" "node" {
               }
             }
           }
+
+          dynamic "liveness_probe" {
+            for_each = var.liveness_probe != null ? toset([1]) : toset([])
+
+            content {
+              failure_threshold     = coalesce(var.liveness_probe.failure_threshold, 10)
+              initial_delay_seconds = coalesce(var.liveness_probe.initial_delay_seconds, 120)
+              period_seconds        = coalesce(var.liveness_probe.period_seconds, 20)
+              success_threshold     = coalesce(var.liveness_probe.success_threshold, 1)
+              timeout_seconds       = coalesce(var.liveness_probe.timeout_seconds, 5)
+
+              exec {
+                command = (
+                  var.network == "prime-testnet"
+                  ? ["test", "-S", "/ipc/node.socket"]
+                  : ["/probes/readiness.sh"]
+                )
+              }
+            }
+          }
         }
 
         container {

@@ -245,6 +245,13 @@ variable "instances" {
       success_threshold     = optional(number)
       timeout_seconds       = optional(number)
     }))
+    liveness_probe = optional(object({
+      failure_threshold     = optional(number)
+      initial_delay_seconds = optional(number)
+      period_seconds        = optional(number)
+      success_threshold     = optional(number)
+      timeout_seconds       = optional(number)
+    }))
     tolerations = optional(list(object({
       effect   = string
       key      = string

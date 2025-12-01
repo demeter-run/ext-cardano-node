@@ -153,6 +153,18 @@ variable "readiness_probe" {
   default = null
 }
 
+variable "liveness_probe" {
+  description = "When enabled, configures a liveness probe for the node."
+  type = object({
+    failure_threshold     = optional(number)
+    initial_delay_seconds = optional(number)
+    period_seconds        = optional(number)
+    success_threshold     = optional(number)
+    timeout_seconds       = optional(number)
+  })
+  default = null
+}
+
 variable "tolerations" {
   description = "List of tolerations for the node"
   type = list(object({
