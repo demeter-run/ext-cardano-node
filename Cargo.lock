@@ -2381,6 +2381,7 @@ dependencies = [
  "pingora",
  "pingora-limits",
  "prometheus 0.13.4",
+ "rand 0.9.2",
  "regex",
  "serde",
  "serde_json",
