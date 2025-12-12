@@ -15,7 +15,6 @@ The controller will create a TLSroute on project namespace and a grant on node n
 | API_KEY_SALT   | cardano-node-salt |
 | METRICS_DELAY  | 5                 |
 | PROMETHEUS_URL |                   |
-| DCU_PER_SECOND | NETWORK=NUMBER    |
 
 ## Commands
 

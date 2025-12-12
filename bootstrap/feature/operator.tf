@@ -71,11 +71,6 @@ resource "kubernetes_deployment_v1" "operator" {
             value = var.metrics_delay
           }
 
-          env {
-            name  = "DCU_PER_SECOND"
-            value = "mainnet=${var.dcu_per_second["mainnet"]},preprod=${var.dcu_per_second["preprod"]},preview=${var.dcu_per_second["preview"]},sanchonet=${var.dcu_per_second["sanchonet"]},vector-testnet=${var.dcu_per_second["vector-testnet"]}"
-          }
-
           resources {
             limits = {
               cpu    = var.resources.limits.cpu
