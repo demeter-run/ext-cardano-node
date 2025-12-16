@@ -13,7 +13,6 @@ module "node_v1_feature" {
   extension_name     = var.extension_name
   dns_zone           = var.dns_zone
   api_key_salt       = var.api_key_salt
-  dcu_per_second     = var.dcu_per_second
   resources          = var.operator_resources
 }
 
