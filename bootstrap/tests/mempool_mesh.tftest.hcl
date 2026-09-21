@@ -164,3 +164,44 @@ run "topology_is_opt_in" {
     error_message = "an instance without topology.local_roots must not receive a headless peer Service"
   }
 }
+
+run "custom_instance_without_local_roots_preserves_baseline" {
+  command = plan
+
+  variables {
+    namespace                       = "test-namespace"
+    operator_image_tag              = "test"
+    api_key_salt                    = "test"
+    proxy_blue_image_tag            = "test"
+    proxy_blue_instances_namespace  = "test-namespace"
+    proxy_blue_healthcheck_port     = 31789
+    proxy_green_image_tag           = "test"
+    proxy_green_instances_namespace = "test-namespace"
+    proxy_green_healthcheck_port    = 32171
+    services                        = {}
+
+    instances = {
+      mainnet-custom-a = {
+        node_image   = "ghcr.io/blinklabs-io/cardano-node"
+        image_tag    = "11.0.1"
+        network      = "mainnet"
+        salt         = "a"
+        release      = "custom"
+        magic        = 764824073
+        node_version = "11.0.1"
+        replicas     = 1
+        is_custom    = true
+      }
+    }
+  }
+
+  assert {
+    condition     = module.instances["mainnet-custom-a"].peer_service == null
+    error_message = "a custom instance without local roots must not receive a headless peer Service"
+  }
+
+  assert {
+    condition     = module.custom_configs["mainnet-custom-a"].topology_json == file("${path.module}/configs/mainnet/topology.json")
+    error_message = "a custom instance without local roots must preserve its baseline topology bytes"
+  }
+}

@@ -132,6 +132,11 @@ variable "is_custom" {
   default = false
 }
 
+variable "has_local_roots" {
+  description = "whether this instance has opted into a local-root P2P mesh"
+  default     = false
+}
+
 variable "is_relay" {
   default = false
 }

@@ -28,7 +28,8 @@ variable "local_roots" {
 }
 
 locals {
-  baseline_topology = jsondecode(file("${path.module}/${var.network}/topology.json"))
+  baseline_topology_json = file("${path.module}/${var.network}/topology.json")
+  baseline_topology      = jsondecode(local.baseline_topology_json)
 
   rendered_topology = merge(local.baseline_topology, {
     localRoots = length(var.local_roots) == 0 ? local.baseline_topology.localRoots : [
@@ -45,6 +46,8 @@ locals {
       }
     ]
   })
+
+  topology_json = length(var.local_roots) == 0 ? local.baseline_topology_json : jsonencode(local.rendered_topology)
 }
 
 resource "kubernetes_config_map" "node-config" {
@@ -55,7 +58,7 @@ resource "kubernetes_config_map" "node-config" {
 
   data = {
     "config.json"   = "${file("${path.module}/${var.network}/config.json")}"
-    "topology.json" = jsonencode(local.rendered_topology)
+    "topology.json" = local.topology_json
   }
 }
 
@@ -65,4 +68,8 @@ output "cm_name" {
 
 output "topology" {
   value = local.rendered_topology
+}
+
+output "topology_json" {
+  value = local.topology_json
 }
