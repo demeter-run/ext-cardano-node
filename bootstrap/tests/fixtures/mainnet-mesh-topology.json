@@ -6,10 +6,14 @@
   ],
   "localRoots": [
     {
-      "accessPoints": [],
+      "accessPoints": [
+        { "address": "node-mainnet-b-0.nodes-b.test-namespace.svc.cluster.local", "port": 3000 },
+        { "address": "node-mainnet-c-0.nodes-c.test-namespace.svc.cluster.local", "port": 3000 },
+        { "address": "node-mainnet-d-0.nodes-d.test-namespace.svc.cluster.local", "port": 3000 }
+      ],
       "advertise": false,
       "trustable": false,
-      "valency": 1
+      "valency": 3
     }
   ],
   "peerSnapshotFile": "/opt/cardano/config/mainnet/peer-snapshot.json",

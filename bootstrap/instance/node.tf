@@ -47,6 +47,34 @@ locals {
   ]
 
   combined_tolerations = concat(local.default_tolerations, var.tolerations)
+
+  peer_service_selector = {
+    network = var.network
+    release = var.release
+    salt    = var.salt
+    role    = "node"
+  }
+}
+
+resource "kubernetes_service_v1" "peer" {
+  count = var.is_custom ? 1 : 0
+
+  metadata {
+    namespace = var.namespace
+    name      = "nodes-${var.salt}"
+  }
+
+  spec {
+    cluster_ip = "None"
+
+    selector = local.peer_service_selector
+
+    port {
+      name     = "n2n"
+      protocol = "TCP"
+      port     = 3000
+    }
+  }
 }
 
 
@@ -420,4 +448,12 @@ resource "kubernetes_stateful_set_v1" "node" {
       }
     }
   }
+}
+
+output "peer_service" {
+  value = var.is_custom ? {
+    cluster_ip = "None"
+    port       = 3000
+    selector   = local.peer_service_selector
+  } : null
 }
