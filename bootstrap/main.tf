@@ -86,7 +86,7 @@ module "instances" {
   availability_sla   = coalesce(each.value.availability_sla, "consistent")
   node_version       = each.value.node_version
   restore            = coalesce(each.value.restore, false)
-  is_custom          = coalesce(each.value.is_custom, false)
+  is_custom          = coalesce(each.value.is_custom, false) || length(each.value.topology.local_roots) > 0
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
   readiness_probe    = each.value.readiness_probe
@@ -104,12 +104,13 @@ module "custom_configs" {
   source     = "./configs"
   for_each = {
     for key, instance in var.instances : key => instance
-    if instance.is_custom == true
+    if coalesce(instance.is_custom, false) || length(instance.topology.local_roots) > 0
   }
 
-  namespace = var.namespace
-  network   = each.value.network
-  salt      = each.value.salt
+  namespace   = var.namespace
+  network     = each.value.network
+  salt        = each.value.salt
+  local_roots = each.value.topology.local_roots
 }
 
 module "services" {
