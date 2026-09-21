@@ -57,7 +57,7 @@ locals {
 }
 
 resource "kubernetes_service_v1" "peer" {
-  count = var.is_custom ? 1 : 0
+  count = var.has_local_roots ? 1 : 0
 
   metadata {
     namespace = var.namespace
@@ -451,7 +451,7 @@ resource "kubernetes_stateful_set_v1" "node" {
 }
 
 output "peer_service" {
-  value = var.is_custom ? {
+  value = var.has_local_roots ? {
     cluster_ip = "None"
     port       = 3000
     selector   = local.peer_service_selector

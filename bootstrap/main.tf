@@ -87,6 +87,7 @@ module "instances" {
   node_version       = each.value.node_version
   restore            = coalesce(each.value.restore, false)
   is_custom          = coalesce(each.value.is_custom, false) || length(each.value.topology.local_roots) > 0
+  has_local_roots    = length(each.value.topology.local_roots) > 0
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
   readiness_probe    = each.value.readiness_probe
