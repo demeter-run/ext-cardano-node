@@ -231,6 +231,12 @@ variable "instances" {
         address = string
         port    = number
       })), [])
+      extra_local_root_groups = optional(list(object({
+        access_points = list(object({
+          address = string
+          port    = number
+        }))
+      })), [])
     }), {})
     rts_opts = optional(string)
     readiness_probe = optional(object({
