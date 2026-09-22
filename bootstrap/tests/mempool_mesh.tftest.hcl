@@ -206,7 +206,7 @@ run "custom_instance_without_local_roots_preserves_baseline" {
   }
 }
 
-run "extra_local_root_group_is_separate" {
+run "external_local_root_group_is_separate" {
   command = plan
 
   variables {
@@ -237,7 +237,7 @@ run "extra_local_root_group_is_separate" {
             { address = "node-mainnet-c-0.nodes-c.test-namespace.svc.cluster.local", port = 3000 },
             { address = "node-mainnet-d-0.nodes-d.test-namespace.svc.cluster.local", port = 3000 },
           ]
-          extra_local_root_groups = [
+          external_local_root_groups = [
             { access_points = [{ address = "relay.peer-operator.example", port = 3001 }] },
           ]
         }
@@ -247,7 +247,7 @@ run "extra_local_root_group_is_separate" {
 
   assert {
     condition     = length(module.custom_configs["mainnet-mesh-a"].topology.localRoots) == 2
-    error_message = "an extra group must render as its own local-root group"
+    error_message = "an external group must render as its own local-root group"
   }
 
   assert {
@@ -255,7 +255,7 @@ run "extra_local_root_group_is_separate" {
       module.custom_configs["mainnet-mesh-a"].topology.localRoots[0].valency == 3 &&
       length(module.custom_configs["mainnet-mesh-a"].topology.localRoots[0].accessPoints) == 3
     )
-    error_message = "an extra group must not change the fleet local-root group"
+    error_message = "an external group must not change the fleet local-root group"
   }
 
   assert {
@@ -267,11 +267,11 @@ run "extra_local_root_group_is_separate" {
       module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].accessPoints[0].address == "relay.peer-operator.example" &&
       module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].accessPoints[0].port == 3001
     )
-    error_message = "an extra group must be non-advertised, untrusted, and hot for each of its access points"
+    error_message = "an external group must be non-advertised, untrusted, and hot for each of its access points"
   }
 }
 
-run "extra_local_root_group_without_fleet_roots" {
+run "external_local_root_group_without_fleet_roots" {
   command = plan
 
   variables {
@@ -287,17 +287,17 @@ run "extra_local_root_group_without_fleet_roots" {
     services                        = {}
 
     instances = {
-      mainnet-extra-a = {
+      mainnet-external-a = {
         node_image   = "ghcr.io/blinklabs-io/cardano-node"
         image_tag    = "11.0.1"
         network      = "mainnet"
         salt         = "a"
-        release      = "extra"
+        release      = "external"
         magic        = 764824073
         node_version = "11.0.1"
         replicas     = 1
         topology = {
-          extra_local_root_groups = [
+          external_local_root_groups = [
             { access_points = [{ address = "relay.peer-operator.example", port = 3001 }] },
           ]
         }
@@ -306,12 +306,12 @@ run "extra_local_root_group_without_fleet_roots" {
   }
 
   assert {
-    condition     = length(module.custom_configs["mainnet-extra-a"].topology.localRoots) == 1
-    error_message = "an instance with only an extra group must render exactly that group"
+    condition     = length(module.custom_configs["mainnet-external-a"].topology.localRoots) == 1
+    error_message = "an instance with only an external group must render exactly that group"
   }
 
   assert {
-    condition     = module.instances["mainnet-extra-a"].peer_service == null
-    error_message = "an extra group alone must not create a headless peer Service"
+    condition     = module.instances["mainnet-external-a"].peer_service == null
+    error_message = "an external group alone must not create a headless peer Service"
   }
 }

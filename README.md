@@ -36,15 +36,15 @@ access points. Omitting `topology.local_roots` preserves the prior instance
 shape.
 
 Peers outside the fleet, such as another operator's relay, go in
-`topology.extra_local_root_groups`. Each entry renders as its own
+`topology.external_local_root_groups`. Each entry renders as its own
 non-advertised local-root group after the fleet group, with a valency equal to
 its number of access points, so it can be added or removed without touching the
-fleet mesh. Extra groups do not create a `nodes-<salt>` Service.
+fleet mesh. External groups do not create a `nodes-<salt>` Service.
 
 ```hcl
 topology = {
   local_roots = [ /* fleet peers */ ]
-  extra_local_root_groups = [
+  external_local_root_groups = [
     {
       access_points = [
         { address = "relay.peer-operator.example", port = 3001 },

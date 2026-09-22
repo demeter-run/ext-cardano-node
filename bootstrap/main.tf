@@ -86,7 +86,7 @@ module "instances" {
   availability_sla   = coalesce(each.value.availability_sla, "consistent")
   node_version       = each.value.node_version
   restore            = coalesce(each.value.restore, false)
-  is_custom          = coalesce(each.value.is_custom, false) || length(each.value.topology.local_roots) > 0 || length(each.value.topology.extra_local_root_groups) > 0
+  is_custom          = coalesce(each.value.is_custom, false) || length(each.value.topology.local_roots) > 0 || length(each.value.topology.external_local_root_groups) > 0
   has_local_roots    = length(each.value.topology.local_roots) > 0
   is_relay           = coalesce(each.value.is_relay, false)
   tolerations        = coalesce(each.value.tolerations, [])
@@ -105,14 +105,14 @@ module "custom_configs" {
   source     = "./configs"
   for_each = {
     for key, instance in var.instances : key => instance
-    if coalesce(instance.is_custom, false) || length(instance.topology.local_roots) > 0 || length(instance.topology.extra_local_root_groups) > 0
+    if coalesce(instance.is_custom, false) || length(instance.topology.local_roots) > 0 || length(instance.topology.external_local_root_groups) > 0
   }
 
-  namespace               = var.namespace
-  network                 = each.value.network
-  salt                    = each.value.salt
-  local_roots             = each.value.topology.local_roots
-  extra_local_root_groups = each.value.topology.extra_local_root_groups
+  namespace                  = var.namespace
+  network                    = each.value.network
+  salt                       = each.value.salt
+  local_roots                = each.value.topology.local_roots
+  external_local_root_groups = each.value.topology.external_local_root_groups
 }
 
 module "services" {

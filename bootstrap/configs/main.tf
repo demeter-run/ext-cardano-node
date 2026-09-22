@@ -27,8 +27,8 @@ variable "local_roots" {
   default = []
 }
 
-variable "extra_local_root_groups" {
-  description = "additional local-root groups, each rendered as its own non-advertised group after local_roots"
+variable "external_local_root_groups" {
+  description = "local-root groups for peers outside the fleet, each rendered as its own non-advertised group after local_roots"
   type = list(object({
     access_points = list(object({
       address = string
@@ -45,7 +45,7 @@ locals {
   local_root_groups = [
     for group in concat(
       length(var.local_roots) == 0 ? [] : [var.local_roots],
-      [for group in var.extra_local_root_groups : group.access_points],
+      [for group in var.external_local_root_groups : group.access_points],
       ) : {
       accessPoints = [
         for root in group : {
