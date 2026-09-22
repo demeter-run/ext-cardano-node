@@ -205,3 +205,113 @@ run "custom_instance_without_local_roots_preserves_baseline" {
     error_message = "a custom instance without local roots must preserve its baseline topology bytes"
   }
 }
+
+run "external_local_root_group_is_separate" {
+  command = plan
+
+  variables {
+    namespace                       = "test-namespace"
+    operator_image_tag              = "test"
+    api_key_salt                    = "test"
+    proxy_blue_image_tag            = "test"
+    proxy_blue_instances_namespace  = "test-namespace"
+    proxy_blue_healthcheck_port     = 31789
+    proxy_green_image_tag           = "test"
+    proxy_green_instances_namespace = "test-namespace"
+    proxy_green_healthcheck_port    = 32171
+    services                        = {}
+
+    instances = {
+      mainnet-mesh-a = {
+        node_image   = "ghcr.io/blinklabs-io/cardano-node"
+        image_tag    = "11.0.1"
+        network      = "mainnet"
+        salt         = "a"
+        release      = "mesh"
+        magic        = 764824073
+        node_version = "11.0.1"
+        replicas     = 1
+        topology = {
+          local_roots = [
+            { address = "node-mainnet-b-0.nodes-b.test-namespace.svc.cluster.local", port = 3000 },
+            { address = "node-mainnet-c-0.nodes-c.test-namespace.svc.cluster.local", port = 3000 },
+            { address = "node-mainnet-d-0.nodes-d.test-namespace.svc.cluster.local", port = 3000 },
+          ]
+          external_local_root_groups = [
+            { access_points = [{ address = "relay.peer-operator.example", port = 3001 }] },
+          ]
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = length(module.custom_configs["mainnet-mesh-a"].topology.localRoots) == 2
+    error_message = "an external group must render as its own local-root group"
+  }
+
+  assert {
+    condition = (
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[0].valency == 3 &&
+      length(module.custom_configs["mainnet-mesh-a"].topology.localRoots[0].accessPoints) == 3
+    )
+    error_message = "an external group must not change the fleet local-root group"
+  }
+
+  assert {
+    condition = (
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].advertise == false &&
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].trustable == false &&
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].valency == 1 &&
+      length(module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].accessPoints) == 1 &&
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].accessPoints[0].address == "relay.peer-operator.example" &&
+      module.custom_configs["mainnet-mesh-a"].topology.localRoots[1].accessPoints[0].port == 3001
+    )
+    error_message = "an external group must be non-advertised, untrusted, and hot for each of its access points"
+  }
+}
+
+run "external_local_root_group_without_fleet_roots" {
+  command = plan
+
+  variables {
+    namespace                       = "test-namespace"
+    operator_image_tag              = "test"
+    api_key_salt                    = "test"
+    proxy_blue_image_tag            = "test"
+    proxy_blue_instances_namespace  = "test-namespace"
+    proxy_blue_healthcheck_port     = 31789
+    proxy_green_image_tag           = "test"
+    proxy_green_instances_namespace = "test-namespace"
+    proxy_green_healthcheck_port    = 32171
+    services                        = {}
+
+    instances = {
+      mainnet-external-a = {
+        node_image   = "ghcr.io/blinklabs-io/cardano-node"
+        image_tag    = "11.0.1"
+        network      = "mainnet"
+        salt         = "a"
+        release      = "external"
+        magic        = 764824073
+        node_version = "11.0.1"
+        replicas     = 1
+        topology = {
+          external_local_root_groups = [
+            { access_points = [{ address = "relay.peer-operator.example", port = 3001 }] },
+          ]
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = length(module.custom_configs["mainnet-external-a"].topology.localRoots) == 1
+    error_message = "an instance with only an external group must render exactly that group"
+  }
+
+  assert {
+    condition     = module.instances["mainnet-external-a"].peer_service == null
+    error_message = "an external group alone must not create a headless peer Service"
+  }
+}

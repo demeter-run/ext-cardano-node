@@ -5,8 +5,9 @@ custom P2P topology. They preserve the node's bootstrap peers, ledger-peer
 activation, peer snapshot, tracing, and protocol configuration.
 
 `topology.json` supplies the P2P baseline. The module adds an instance's
-configured local roots to it as one non-advertised root group, with a valency
-equal to the number of access points.
+configured local roots to it as one non-advertised root group, followed by one
+non-advertised group per external local-root group, each with a valency equal
+to its number of access points.
 
 The genesis, checkpoint, and peer-snapshot paths are absolute because the
 module mounts only `config.json` and `topology.json` at `/configuration`. The
