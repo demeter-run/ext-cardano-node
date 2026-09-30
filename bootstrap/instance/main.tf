@@ -154,8 +154,14 @@ variable "readiness_probe" {
     period_seconds        = optional(number)
     success_threshold     = optional(number)
     timeout_seconds       = optional(number)
+    max_tip_age_seconds   = optional(number)
   })
   default = null
+
+  validation {
+    condition     = try(var.readiness_probe.max_tip_age_seconds == null || (var.readiness_probe.max_tip_age_seconds > 0 && floor(var.readiness_probe.max_tip_age_seconds) == var.readiness_probe.max_tip_age_seconds), true)
+    error_message = "readiness_probe.max_tip_age_seconds must be a positive whole number of seconds."
+  }
 }
 
 variable "liveness_probe" {
@@ -166,8 +172,14 @@ variable "liveness_probe" {
     period_seconds        = optional(number)
     success_threshold     = optional(number)
     timeout_seconds       = optional(number)
+    max_tip_age_seconds   = optional(number)
   })
   default = null
+
+  validation {
+    condition     = try(var.liveness_probe.max_tip_age_seconds == null || (var.liveness_probe.max_tip_age_seconds > 0 && floor(var.liveness_probe.max_tip_age_seconds) == var.liveness_probe.max_tip_age_seconds), true)
+    error_message = "liveness_probe.max_tip_age_seconds must be a positive whole number of seconds."
+  }
 }
 
 variable "startup_probe" {
@@ -178,8 +190,14 @@ variable "startup_probe" {
     period_seconds        = optional(number)
     success_threshold     = optional(number)
     timeout_seconds       = optional(number)
+    max_tip_age_seconds   = optional(number)
   })
   default = null
+
+  validation {
+    condition     = try(var.startup_probe.max_tip_age_seconds == null || (var.startup_probe.max_tip_age_seconds > 0 && floor(var.startup_probe.max_tip_age_seconds) == var.startup_probe.max_tip_age_seconds), true)
+    error_message = "startup_probe.max_tip_age_seconds must be a positive whole number of seconds."
+  }
 }
 
 variable "tolerations" {
