@@ -54,6 +54,26 @@ locals {
     salt    = var.salt
     role    = "node"
   }
+
+  # prime-testnet only checks for the socket. Elsewhere a probe with
+  # max_tip_age_seconds passes it to the script, which then also fails on a
+  # stale tip.
+  socket_probe_command = ["test", "-S", "/ipc/node.socket"]
+  probes = {
+    readiness = var.readiness_probe
+    liveness  = var.liveness_probe
+    startup   = var.startup_probe
+  }
+  probe_commands = {
+    for name, probe in local.probes : name => tolist(
+      var.network == "prime-testnet"
+      ? local.socket_probe_command
+      : concat(
+        ["/probes/readiness.sh"],
+        try(probe.max_tip_age_seconds, null) != null ? [tostring(probe.max_tip_age_seconds)] : []
+      )
+    )
+  }
 }
 
 resource "kubernetes_service_v1" "peer" {
@@ -66,6 +86,11 @@ resource "kubernetes_service_v1" "peer" {
 
   spec {
     cluster_ip = "None"
+
+    # The mesh must keep resolving a peer while its readiness probe fails:
+    # a missing record is cached as NXDOMAIN by the other nodes for up to
+    # 15 minutes, well past the peer's recovery.
+    publish_not_ready_addresses = true
 
     selector = local.peer_service_selector
 
@@ -366,11 +391,7 @@ resource "kubernetes_stateful_set_v1" "node" {
               timeout_seconds       = coalesce(var.readiness_probe.timeout_seconds, 5)
 
               exec {
-                command = (
-                  var.network == "prime-testnet"
-                  ? ["test", "-S", "/ipc/node.socket"]
-                  : ["/probes/readiness.sh"]
-                )
+                command = local.probe_commands["readiness"]
               }
             }
           }
@@ -386,11 +407,7 @@ resource "kubernetes_stateful_set_v1" "node" {
               timeout_seconds       = coalesce(var.startup_probe.timeout_seconds, 5)
 
               exec {
-                command = (
-                  var.network == "prime-testnet"
-                  ? ["test", "-S", "/ipc/node.socket"]
-                  : ["/probes/readiness.sh"]
-                )
+                command = local.probe_commands["startup"]
               }
             }
           }
@@ -406,11 +423,7 @@ resource "kubernetes_stateful_set_v1" "node" {
               timeout_seconds       = coalesce(var.liveness_probe.timeout_seconds, 5)
 
               exec {
-                command = (
-                  var.network == "prime-testnet"
-                  ? ["test", "-S", "/ipc/node.socket"]
-                  : ["/probes/readiness.sh"]
-                )
+                command = local.probe_commands["liveness"]
               }
             }
           }
@@ -452,8 +465,13 @@ resource "kubernetes_stateful_set_v1" "node" {
 
 output "peer_service" {
   value = var.has_local_roots ? {
-    cluster_ip = "None"
-    port       = 3000
-    selector   = local.peer_service_selector
+    cluster_ip                  = "None"
+    port                        = 3000
+    publish_not_ready_addresses = true
+    selector                    = local.peer_service_selector
   } : null
+}
+
+output "probe_commands" {
+  value = local.probe_commands
 }

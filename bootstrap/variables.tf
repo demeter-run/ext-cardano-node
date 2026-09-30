@@ -245,6 +245,7 @@ variable "instances" {
       period_seconds        = optional(number)
       success_threshold     = optional(number)
       timeout_seconds       = optional(number)
+      max_tip_age_seconds   = optional(number)
     }))
     liveness_probe = optional(object({
       failure_threshold     = optional(number)
@@ -252,6 +253,7 @@ variable "instances" {
       period_seconds        = optional(number)
       success_threshold     = optional(number)
       timeout_seconds       = optional(number)
+      max_tip_age_seconds   = optional(number)
     }))
     startup_probe = optional(object({
       failure_threshold     = optional(number)
@@ -259,6 +261,7 @@ variable "instances" {
       period_seconds        = optional(number)
       success_threshold     = optional(number)
       timeout_seconds       = optional(number)
+      max_tip_age_seconds   = optional(number)
     }))
     tolerations = optional(list(object({
       effect   = string
