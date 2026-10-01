@@ -48,6 +48,19 @@ locals {
 
   combined_tolerations = concat(local.default_tolerations, var.tolerations)
 
+  has_node_affinity = (
+    var.node_affinity != null &&
+    (
+      try(length(var.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_term), 0) > 0 ||
+      try(length(var.node_affinity.preferred_during_scheduling_ignored_during_execution), 0) > 0
+    )
+  )
+
+  spread_hosts_selector = {
+    role    = "node"
+    network = var.network
+  }
+
   peer_service_selector = {
     network = var.network
     release = var.release
@@ -171,67 +184,85 @@ resource "kubernetes_stateful_set_v1" "node" {
       }
 
       spec {
+        termination_grace_period_seconds = var.termination_grace_period_seconds
+
         dynamic "affinity" {
-          for_each = (
-            var.node_affinity != null &&
-            (
-              try(length(var.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_term), 0) > 0 ||
-              try(length(var.node_affinity.preferred_during_scheduling_ignored_during_execution), 0) > 0
-            )
-          ) ? [var.node_affinity] : []
+          for_each = local.has_node_affinity || var.spread_hosts ? [1] : []
           content {
-            node_affinity {
-              dynamic "required_during_scheduling_ignored_during_execution" {
-                for_each = (
-                  var.node_affinity.required_during_scheduling_ignored_during_execution != null &&
-                  length(var.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_term) > 0
-                ) ? [var.node_affinity.required_during_scheduling_ignored_during_execution] : []
-                content {
-                  dynamic "node_selector_term" {
-                    for_each = required_during_scheduling_ignored_during_execution.value.node_selector_term
-                    content {
-                      dynamic "match_expressions" {
-                        for_each = length(node_selector_term.value.match_expressions) > 0 ? node_selector_term.value.match_expressions : []
-                        content {
-                          key      = match_expressions.value.key
-                          operator = match_expressions.value.operator
-                          values   = match_expressions.value.values
+            dynamic "node_affinity" {
+              for_each = local.has_node_affinity ? [var.node_affinity] : []
+              content {
+                dynamic "required_during_scheduling_ignored_during_execution" {
+                  for_each = (
+                    var.node_affinity.required_during_scheduling_ignored_during_execution != null &&
+                    length(var.node_affinity.required_during_scheduling_ignored_during_execution.node_selector_term) > 0
+                  ) ? [var.node_affinity.required_during_scheduling_ignored_during_execution] : []
+                  content {
+                    dynamic "node_selector_term" {
+                      for_each = required_during_scheduling_ignored_during_execution.value.node_selector_term
+                      content {
+                        dynamic "match_expressions" {
+                          for_each = length(node_selector_term.value.match_expressions) > 0 ? node_selector_term.value.match_expressions : []
+                          content {
+                            key      = match_expressions.value.key
+                            operator = match_expressions.value.operator
+                            values   = match_expressions.value.values
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                dynamic "preferred_during_scheduling_ignored_during_execution" {
+                  for_each = (
+                    var.node_affinity.preferred_during_scheduling_ignored_during_execution != null &&
+                    length(var.node_affinity.preferred_during_scheduling_ignored_during_execution) > 0
+                  ) ? var.node_affinity.preferred_during_scheduling_ignored_during_execution : []
+                  content {
+                    weight = preferred_during_scheduling_ignored_during_execution.value.weight
+
+                    dynamic "preference" {
+                      for_each = (
+                        length(preferred_during_scheduling_ignored_during_execution.value.preference.match_expressions) > 0 ||
+                        length(preferred_during_scheduling_ignored_during_execution.value.preference.match_fields) > 0
+                      ) ? [preferred_during_scheduling_ignored_during_execution.value.preference] : []
+                      content {
+                        dynamic "match_expressions" {
+                          for_each = length(preference.value.match_expressions) > 0 ? preference.value.match_expressions : []
+                          content {
+                            key      = match_expressions.value.key
+                            operator = match_expressions.value.operator
+                            values   = match_expressions.value.values
+                          }
+                        }
+                        dynamic "match_fields" {
+                          for_each = length(preference.value.match_fields) > 0 ? preference.value.match_fields : []
+                          content {
+                            key      = match_fields.value.key
+                            operator = match_fields.value.operator
+                            values   = match_fields.value.values
+                          }
                         }
                       }
                     }
                   }
                 }
               }
-              dynamic "preferred_during_scheduling_ignored_during_execution" {
-                for_each = (
-                  var.node_affinity.preferred_during_scheduling_ignored_during_execution != null &&
-                  length(var.node_affinity.preferred_during_scheduling_ignored_during_execution) > 0
-                ) ? var.node_affinity.preferred_during_scheduling_ignored_during_execution : []
-                content {
-                  weight = preferred_during_scheduling_ignored_during_execution.value.weight
+            }
 
-                  dynamic "preference" {
-                    for_each = (
-                      length(preferred_during_scheduling_ignored_during_execution.value.preference.match_expressions) > 0 ||
-                      length(preferred_during_scheduling_ignored_during_execution.value.preference.match_fields) > 0
-                    ) ? [preferred_during_scheduling_ignored_during_execution.value.preference] : []
-                    content {
-                      dynamic "match_expressions" {
-                        for_each = length(preference.value.match_expressions) > 0 ? preference.value.match_expressions : []
-                        content {
-                          key      = match_expressions.value.key
-                          operator = match_expressions.value.operator
-                          values   = match_expressions.value.values
-                        }
-                      }
-                      dynamic "match_fields" {
-                        for_each = length(preference.value.match_fields) > 0 ? preference.value.match_fields : []
-                        content {
-                          key      = match_fields.value.key
-                          operator = match_fields.value.operator
-                          values   = match_fields.value.values
-                        }
-                      }
+            # Preferred, never required: the cluster has no autoscaler, so a
+            # hard rule would leave a pod Pending instead of doubling up.
+            dynamic "pod_anti_affinity" {
+              for_each = var.spread_hosts ? [1] : []
+              content {
+                preferred_during_scheduling_ignored_during_execution {
+                  weight = 100
+
+                  pod_affinity_term {
+                    topology_key = "kubernetes.io/hostname"
+
+                    label_selector {
+                      match_labels = local.spread_hosts_selector
                     }
                   }
                 }
