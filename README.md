@@ -53,3 +53,51 @@ topology = {
   ]
 }
 ```
+
+## Pool capacity inputs
+
+Four opt-in inputs support running a pool of interchangeable nodes behind one
+Service. An instance or Service that sets none of them renders exactly as
+before.
+
+Per instance (`instances`):
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `termination_grace_period_seconds` | `null` | Seconds the pod gets after SIGTERM. Must be a positive whole number. `null` keeps the Kubernetes default (30). |
+| `spread_hosts` | `false` | Adds a *preferred* pod anti-affinity (weight 100, topology key `kubernetes.io/hostname`, selecting `role=node` and the instance's `network`), next to any node affinity. It is never required: without an autoscaler a hard rule would leave a pod Pending. |
+
+Per Service (`services`):
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `headless` | `false` | Renders the Service with `cluster_ip = "None"` and `publish_not_ready_addresses = false`, keeping its selector and the `n2c` (3307) and `n2n` (3000) ports. DNS and the SRV records `_n2c._tcp.<name>.<namespace>.svc.cluster.local` then list Ready pods only. |
+| `pdb_max_unavailable` | `null` | Creates a `policy/v1` PodDisruptionBudget named after the Service, with this `maxUnavailable` and the Service's selector. Must be a non-negative whole number. |
+
+```hcl
+instances = {
+  "mainnet-pool-a" = {
+    # existing instance settings
+    termination_grace_period_seconds = 600
+    spread_hosts                     = true
+  }
+}
+
+services = {
+  "mainnet-pool" = {
+    name                = "node-mainnet-pool"
+    network             = "mainnet"
+    release             = "pool"
+    node_version        = "11.0.1"
+    active_salt         = ""
+    headless            = true
+    pdb_max_unavailable = 1
+  }
+}
+```
+
+A headless pool Service is the opposite of the `nodes-<salt>` peer Services,
+which keep publishing not-ready addresses so the mesh can still resolve a
+recovering peer. Switching an existing Service to `headless` changes its
+cluster IP, which Kubernetes cannot do in place: Terraform replaces the
+Service. Add a new Service entry rather than flipping an existing one.

@@ -239,6 +239,10 @@ variable "instances" {
       })), [])
     }), {})
     rts_opts = optional(string)
+    # Seconds the pod gets after SIGTERM; null keeps the Kubernetes default (30).
+    termination_grace_period_seconds = optional(number)
+    # Prefer one node of this network per host (preferred pod anti-affinity).
+    spread_hosts = optional(bool, false)
     readiness_probe = optional(object({
       failure_threshold     = optional(number)
       initial_delay_seconds = optional(number)
@@ -317,5 +321,9 @@ variable "services" {
     release      = string
     node_version = string
     active_salt  = optional(string)
+    # Headless, Ready-only Service: DNS and SRV list just the pods that serve.
+    headless = optional(bool, false)
+    # When set, a PodDisruptionBudget named after the Service with this maxUnavailable.
+    pdb_max_unavailable = optional(number)
   }))
 }

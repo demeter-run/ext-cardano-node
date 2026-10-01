@@ -94,6 +94,9 @@ module "instances" {
   liveness_probe     = each.value.liveness_probe
   startup_probe      = each.value.startup_probe
   rts_opts           = each.value.rts_opts
+  spread_hosts       = each.value.spread_hosts
+
+  termination_grace_period_seconds = each.value.termination_grace_period_seconds
   node_affinity = coalesce(each.value.node_affinity, {
     required_during_scheduling_ignored_during_execution  = {}
     preferred_during_scheduling_ignored_during_execution = []
@@ -126,6 +129,9 @@ module "services" {
   release      = each.value.release
   node_version = each.value.node_version
   active_salt  = each.value.active_salt
+
+  headless            = each.value.headless
+  pdb_max_unavailable = each.value.pdb_max_unavailable
 }
 
 module "node_relay" {

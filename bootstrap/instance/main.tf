@@ -124,6 +124,23 @@ variable "node_version" {
   type = string
 }
 
+variable "termination_grace_period_seconds" {
+  description = "Seconds the pod gets to shut down after SIGTERM. Null leaves the Kubernetes default (30)."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.termination_grace_period_seconds == null || try(var.termination_grace_period_seconds > 0 && floor(var.termination_grace_period_seconds) == var.termination_grace_period_seconds, false)
+    error_message = "termination_grace_period_seconds must be a positive whole number of seconds."
+  }
+}
+
+variable "spread_hosts" {
+  description = "When true, prefer scheduling this instance's pods away from hosts already running a node of the same network."
+  type        = bool
+  default     = false
+}
+
 variable "restore" {
   default = false
 }
