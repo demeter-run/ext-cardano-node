@@ -56,6 +56,7 @@ locals {
     )
   )
 
+  spread_hosts = var.spread_hosts || var.spread_hosts_required
   spread_hosts_selector = {
     role    = "node"
     network = var.network
@@ -187,7 +188,7 @@ resource "kubernetes_stateful_set_v1" "node" {
         termination_grace_period_seconds = var.termination_grace_period_seconds
 
         dynamic "affinity" {
-          for_each = local.has_node_affinity || var.spread_hosts ? [1] : []
+          for_each = local.has_node_affinity || local.spread_hosts ? [1] : []
           content {
             dynamic "node_affinity" {
               for_each = local.has_node_affinity ? [var.node_affinity] : []
@@ -250,19 +251,36 @@ resource "kubernetes_stateful_set_v1" "node" {
               }
             }
 
-            # Preferred, never required: the cluster has no autoscaler, so a
-            # hard rule would leave a pod Pending instead of doubling up.
+            # Preferred by default: a displaced pod then doubles up with another
+            # node rather than wait. Required (spread_hosts_required) makes it
+            # wait Pending until a host without a node of its network has room,
+            # so use it only where the node group replaces a lost host and keeps
+            # at least one host per node.
             dynamic "pod_anti_affinity" {
-              for_each = var.spread_hosts ? [1] : []
+              for_each = local.spread_hosts ? [1] : []
               content {
-                preferred_during_scheduling_ignored_during_execution {
-                  weight = 100
-
-                  pod_affinity_term {
+                dynamic "required_during_scheduling_ignored_during_execution" {
+                  for_each = var.spread_hosts_required ? [1] : []
+                  content {
                     topology_key = "kubernetes.io/hostname"
 
                     label_selector {
                       match_labels = local.spread_hosts_selector
+                    }
+                  }
+                }
+
+                dynamic "preferred_during_scheduling_ignored_during_execution" {
+                  for_each = var.spread_hosts_required ? [] : [1]
+                  content {
+                    weight = 100
+
+                    pod_affinity_term {
+                      topology_key = "kubernetes.io/hostname"
+
+                      label_selector {
+                        match_labels = local.spread_hosts_selector
+                      }
                     }
                   }
                 }

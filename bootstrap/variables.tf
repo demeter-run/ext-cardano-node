@@ -243,6 +243,8 @@ variable "instances" {
     termination_grace_period_seconds = optional(number)
     # Prefer one node of this network per host (preferred pod anti-affinity).
     spread_hosts = optional(bool, false)
+    # Require it instead (required pod anti-affinity); implies spread_hosts.
+    spread_hosts_required = optional(bool, false)
     readiness_probe = optional(object({
       failure_threshold     = optional(number)
       initial_delay_seconds = optional(number)

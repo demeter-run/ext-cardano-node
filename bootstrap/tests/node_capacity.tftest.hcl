@@ -1,6 +1,6 @@
 mock_provider "kubernetes" {}
 
-# The four node-capacity inputs are opt-in: an instance or Service that does
+# The five node-capacity inputs are opt-in: an instance or Service that does
 # not set them must render as it did before they existed.
 
 run "grace_period_is_rendered_when_set" {
@@ -106,7 +106,7 @@ run "spread_hosts_adds_a_preferred_anti_affinity" {
 
   assert {
     condition     = length(kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].pod_anti_affinity[0].required_during_scheduling_ignored_during_execution) == 0
-    error_message = "the anti-affinity must not be required: the cluster has no autoscaler"
+    error_message = "spread_hosts alone must keep the anti-affinity preferred"
   }
 
   assert {
@@ -127,6 +127,88 @@ run "spread_hosts_adds_a_preferred_anti_affinity" {
   assert {
     condition     = kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].node_affinity[0].required_during_scheduling_ignored_during_execution[0].node_selector_term[0].match_expressions[0].values == toset(["mem-intensive"])
     error_message = "spread_hosts must keep the existing node affinity"
+  }
+}
+
+run "spread_hosts_required_adds_a_required_anti_affinity" {
+  command = plan
+
+  module {
+    source = "./instance"
+  }
+
+  variables {
+    namespace             = "test-namespace"
+    node_image            = "ghcr.io/blinklabs-io/cardano-node"
+    node_image_tag        = "11.0.1"
+    network               = "mainnet"
+    salt                  = "a"
+    release               = "pool"
+    magic                 = 764824073
+    node_version          = "11.0.1"
+    spread_hosts          = true
+    spread_hosts_required = true
+    node_affinity = {
+      required_during_scheduling_ignored_during_execution = {
+        node_selector_term = [{
+          match_expressions = [{
+            key      = "demeter.run/availability-zone"
+            operator = "In"
+            values   = ["az1"]
+          }]
+        }]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].pod_anti_affinity[0].preferred_during_scheduling_ignored_during_execution) == 0
+    error_message = "spread_hosts_required must replace the preferred term, not add to it"
+  }
+
+  assert {
+    condition     = kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].pod_anti_affinity[0].required_during_scheduling_ignored_during_execution[0].topology_key == "kubernetes.io/hostname"
+    error_message = "the required anti-affinity must spread across hosts"
+  }
+
+  assert {
+    condition     = kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].pod_anti_affinity[0].required_during_scheduling_ignored_during_execution[0].label_selector[0].match_labels == tomap({ role = "node", network = "mainnet" })
+    error_message = "the required anti-affinity must select nodes of the instance's network"
+  }
+
+  assert {
+    condition     = kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].node_affinity[0].required_during_scheduling_ignored_during_execution[0].node_selector_term[0].match_expressions[0].values == toset(["az1"])
+    error_message = "spread_hosts_required must keep the existing node affinity"
+  }
+}
+
+run "spread_hosts_required_implies_spread_hosts" {
+  command = plan
+
+  module {
+    source = "./instance"
+  }
+
+  variables {
+    namespace             = "test-namespace"
+    node_image            = "ghcr.io/blinklabs-io/cardano-node"
+    node_image_tag        = "11.0.1"
+    network               = "mainnet"
+    salt                  = "a"
+    release               = "pool"
+    magic                 = 764824073
+    node_version          = "11.0.1"
+    spread_hosts_required = true
+  }
+
+  assert {
+    condition     = length(kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].node_affinity) == 0
+    error_message = "spread_hosts_required without a node affinity must not add an empty one"
+  }
+
+  assert {
+    condition     = length(kubernetes_stateful_set_v1.node.spec[0].template[0].spec[0].affinity[0].pod_anti_affinity[0].required_during_scheduling_ignored_during_execution) == 1
+    error_message = "spread_hosts_required must render a required anti-affinity even without spread_hosts"
   }
 }
 
@@ -350,6 +432,17 @@ run "root_passes_the_new_inputs_through" {
         replicas                         = 1
         termination_grace_period_seconds = 600
         spread_hosts                     = true
+      }
+      mainnet-pool-b = {
+        node_image            = "ghcr.io/blinklabs-io/cardano-node"
+        image_tag             = "11.0.1"
+        network               = "mainnet"
+        salt                  = "b"
+        release               = "pool"
+        magic                 = 764824073
+        node_version          = "11.0.1"
+        replicas              = 1
+        spread_hosts_required = true
       }
     }
 

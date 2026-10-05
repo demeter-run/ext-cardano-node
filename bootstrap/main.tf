@@ -96,6 +96,8 @@ module "instances" {
   rts_opts           = each.value.rts_opts
   spread_hosts       = each.value.spread_hosts
 
+  spread_hosts_required = each.value.spread_hosts_required
+
   termination_grace_period_seconds = each.value.termination_grace_period_seconds
   node_affinity = coalesce(each.value.node_affinity, {
     required_during_scheduling_ignored_during_execution  = {}
