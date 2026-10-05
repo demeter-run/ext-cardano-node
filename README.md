@@ -56,7 +56,7 @@ topology = {
 
 ## Pool capacity inputs
 
-Four opt-in inputs support running a pool of interchangeable nodes behind one
+Five opt-in inputs support running a pool of interchangeable nodes behind one
 Service. An instance or Service that sets none of them renders exactly as
 before.
 
@@ -65,7 +65,8 @@ Per instance (`instances`):
 | Input | Default | Effect |
 | --- | --- | --- |
 | `termination_grace_period_seconds` | `null` | Seconds the pod gets after SIGTERM. Must be a positive whole number. `null` keeps the Kubernetes default (30). |
-| `spread_hosts` | `false` | Adds a *preferred* pod anti-affinity (weight 100, topology key `kubernetes.io/hostname`, selecting `role=node` and the instance's `network`), next to any node affinity. It is never required: without an autoscaler a hard rule would leave a pod Pending. |
+| `spread_hosts` | `false` | Adds a *preferred* pod anti-affinity (weight 100, topology key `kubernetes.io/hostname`, selecting `role=node` and the instance's `network`), next to any node affinity. A displaced pod doubles up with another node when no other host has room. |
+| `spread_hosts_required` | `false` | Makes that anti-affinity *required* instead of preferred, and implies `spread_hosts`. A displaced pod waits Pending until a host without a node of its network has room, so set it only where the node group replaces a lost host and keeps at least one host per node. |
 
 Per Service (`services`):
 

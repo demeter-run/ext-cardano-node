@@ -141,6 +141,12 @@ variable "spread_hosts" {
   default     = false
 }
 
+variable "spread_hosts_required" {
+  description = "When true, require scheduling this instance's pods away from hosts already running a node of the same network, instead of preferring it. Implies spread_hosts."
+  type        = bool
+  default     = false
+}
+
 variable "restore" {
   default = false
 }
