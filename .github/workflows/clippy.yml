@@ -18,5 +18,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Check trust floor
+        working-directory: .
+        run: sh scripts/check-trust-floor.sh
+
       - name: Clippy check lints
         run: cargo clippy -- -D warnings
