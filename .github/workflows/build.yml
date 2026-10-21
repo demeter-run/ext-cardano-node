@@ -9,6 +9,9 @@ on:
       - ".github/workflows/build.yml"
       - "operator/**"
       - "proxy/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+  workflow_dispatch: {}
 
 jobs:
   build:
