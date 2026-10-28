@@ -6,6 +6,7 @@ locals {
 
 resource "kubernetes_deployment_v1" "operator" {
   wait_for_rollout = false
+  depends_on       = [kubernetes_cluster_role_binding_v1.operator]
 
   metadata {
     namespace = var.namespace
@@ -32,7 +33,7 @@ resource "kubernetes_deployment_v1" "operator" {
       }
 
       spec {
-        service_account_name = "operator"
+        service_account_name = kubernetes_service_account_v1.operator.metadata[0].name
 
         container {
           image = "ghcr.io/demeter-run/ext-cardano-node-operator:${var.operator_image_tag}"

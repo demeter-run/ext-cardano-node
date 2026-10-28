@@ -18,41 +18,43 @@ module "node_v1_feature" {
 
 // blue (once we have a green, we can update its name to proxy-blue)
 module "node_v1_proxy_blue" {
-  depends_on          = [kubernetes_namespace.namespace]
-  source              = "./proxy"
-  namespace           = var.namespace
-  replicas            = var.proxy_blue_replicas
-  extension_name      = var.extension_name
-  extra_annotations   = var.proxy_blue_extra_annotations
-  dns_zone            = var.dns_zone
-  dns_names           = var.dns_names
-  proxy_image_tag     = var.proxy_blue_image_tag
-  resources           = var.proxy_resources
-  instances_namespace = var.proxy_blue_instances_namespace
-  healthcheck_port    = var.proxy_blue_healthcheck_port
-  cloud_provider      = var.cloud_provider
-  environment         = "blue"
-  name                = "proxy-blue"
-  tolerations         = var.proxy_blue_tolerations
+  depends_on           = [kubernetes_namespace.namespace]
+  source               = "./proxy"
+  namespace            = var.namespace
+  replicas             = var.proxy_blue_replicas
+  extension_name       = var.extension_name
+  extra_annotations    = var.proxy_blue_extra_annotations
+  dns_zone             = var.dns_zone
+  dns_names            = var.dns_names
+  proxy_image_tag      = var.proxy_blue_image_tag
+  resources            = var.proxy_resources
+  instances_namespace  = var.proxy_blue_instances_namespace
+  service_account_name = module.node_v1_feature.proxy_service_account_name
+  healthcheck_port     = var.proxy_blue_healthcheck_port
+  cloud_provider       = var.cloud_provider
+  environment          = "blue"
+  name                 = "proxy-blue"
+  tolerations          = var.proxy_blue_tolerations
 }
 
 module "node_v1_proxy_green" {
-  depends_on          = [kubernetes_namespace.namespace]
-  source              = "./proxy"
-  namespace           = var.namespace
-  replicas            = var.proxy_green_replicas
-  extension_name      = var.extension_name
-  extra_annotations   = var.proxy_green_extra_annotations
-  dns_zone            = var.dns_zone
-  dns_names           = var.dns_names
-  proxy_image_tag     = var.proxy_green_image_tag
-  resources           = var.proxy_resources
-  instances_namespace = var.proxy_green_instances_namespace
-  healthcheck_port    = var.proxy_green_healthcheck_port
-  cloud_provider      = var.cloud_provider
-  environment         = "green"
-  name                = "proxy-green"
-  tolerations         = var.proxy_green_tolerations
+  depends_on           = [kubernetes_namespace.namespace]
+  source               = "./proxy"
+  namespace            = var.namespace
+  replicas             = var.proxy_green_replicas
+  extension_name       = var.extension_name
+  extra_annotations    = var.proxy_green_extra_annotations
+  dns_zone             = var.dns_zone
+  dns_names            = var.dns_names
+  proxy_image_tag      = var.proxy_green_image_tag
+  resources            = var.proxy_resources
+  instances_namespace  = var.proxy_green_instances_namespace
+  service_account_name = module.node_v1_feature.proxy_service_account_name
+  healthcheck_port     = var.proxy_green_healthcheck_port
+  cloud_provider       = var.cloud_provider
+  environment          = "green"
+  name                 = "proxy-green"
+  tolerations          = var.proxy_green_tolerations
 }
 
 

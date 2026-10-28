@@ -82,3 +82,10 @@ resource "kubernetes_cluster_role_binding_v1" "proxy" {
     namespace = var.namespace
   }
 }
+
+// The proxy Deployments live in their own modules; taking the account name from
+// this output orders them after the account and its binding.
+output "proxy_service_account_name" {
+  value      = kubernetes_service_account_v1.proxy.metadata[0].name
+  depends_on = [kubernetes_cluster_role_binding_v1.proxy]
+}

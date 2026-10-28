@@ -32,6 +32,10 @@ variable "proxy_image_tag" {
   type = string
 }
 
+variable "service_account_name" {
+  type = string
+}
+
 variable "instances_namespace" {
   type = string
 }
