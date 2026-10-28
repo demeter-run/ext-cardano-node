@@ -32,6 +32,8 @@ resource "kubernetes_deployment_v1" "operator" {
       }
 
       spec {
+        service_account_name = "operator"
+
         container {
           image = "ghcr.io/demeter-run/ext-cardano-node-operator:${var.operator_image_tag}"
           name  = "main"

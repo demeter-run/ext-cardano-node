@@ -18,6 +18,8 @@ resource "kubernetes_deployment_v1" "node_proxy" {
         labels = local.proxy_labels
       }
       spec {
+        service_account_name = "proxy"
+
         container {
           name              = "main"
           image             = "ghcr.io/demeter-run/ext-cardano-node-proxy:${var.proxy_image_tag}"
