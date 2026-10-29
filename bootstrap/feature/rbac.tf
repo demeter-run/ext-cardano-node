@@ -5,12 +5,14 @@ resource "kubernetes_default_service_account_v1" "default" {
   automount_service_account_token = false
 }
 
+// No account automounts a token: the operator and proxy pod specs opt in
+// explicitly, so naming one of these accounts alone never yields a token.
 resource "kubernetes_service_account_v1" "operator" {
   metadata {
     name      = "operator"
     namespace = var.namespace
   }
-  automount_service_account_token = true
+  automount_service_account_token = false
 }
 
 resource "kubernetes_service_account_v1" "proxy" {
@@ -18,7 +20,7 @@ resource "kubernetes_service_account_v1" "proxy" {
     name      = "proxy"
     namespace = var.namespace
   }
-  automount_service_account_token = true
+  automount_service_account_token = false
 }
 
 resource "kubernetes_cluster_role_v1" "operator" {

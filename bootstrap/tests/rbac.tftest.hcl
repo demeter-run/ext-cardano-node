@@ -39,6 +39,14 @@ run "feature_roles_are_exact" {
 
   assert {
     condition = (
+      length(kubernetes_cluster_role_v1.operator.aggregation_rule) == 0 &&
+      length(kubernetes_cluster_role_v1.proxy.aggregation_rule) == 0
+    )
+    error_message = "the operator and proxy ClusterRoles must not aggregate rules from other roles"
+  }
+
+  assert {
+    condition = (
       kubernetes_cluster_role_binding_v1.operator.role_ref[0].name == "test-namespace-operator" &&
       length(kubernetes_cluster_role_binding_v1.operator.subject) == 1 &&
       kubernetes_cluster_role_binding_v1.operator.subject[0].kind == "ServiceAccount" &&
@@ -71,10 +79,10 @@ run "feature_roles_are_exact" {
 
   assert {
     condition = (
-      kubernetes_service_account_v1.operator.automount_service_account_token == true &&
-      kubernetes_service_account_v1.proxy.automount_service_account_token == true
+      kubernetes_service_account_v1.operator.automount_service_account_token == false &&
+      kubernetes_service_account_v1.proxy.automount_service_account_token == false
     )
-    error_message = "the operator and proxy service accounts must keep their tokens"
+    error_message = "the operator and proxy service accounts must not automount a token; their pod specs opt in"
   }
 
   assert {
@@ -140,34 +148,74 @@ run "instance_pods_carry_no_token" {
   }
 }
 
+# The census runs read the bootstrap source, excluding tests/ and .terraform/:
+# every .tf, .tf.json, .json, .yaml, .yml, .tftpl and .tpl file. They catch
+# typed resources (quoted or bare labels, HCL or JSON syntax) and manifest
+# kinds, but not grants or accounts that reach the namespace from outside this
+# tree (a Helm chart, a remote module, the caller), nor kinds assembled from
+# expressions rather than written as literals.
+
 # Every role binding in the bootstrap tree is one of the two above, so no other
 # grant can reach the operator or proxy account.
 run "only_the_two_bindings_exist" {
   command = plan
 
   module {
-    source = "./feature"
+    source = "./tests/census"
   }
 
   variables {
-    namespace          = "test-namespace"
-    api_key_salt       = "test"
-    extension_name     = "test"
-    dns_zone           = "demeter.run"
-    operator_image_tag = "test"
+    patterns = [
+      "resource\\s+\"?(kubernetes_(?:cluster_)?role_binding(?:_v1)?)\"?\\s+\"?([\\w-]+)\"?",
+      "\"(kubernetes_(?:cluster_)?role_binding(?:_v1)?)\"\\s*:",
+      "kind\"?\\s*[=:]\\s*\"?((?:Cluster)?RoleBinding)\\b",
+    ]
   }
 
   assert {
-    condition = jsonencode(flatten([
-      for f in sort([for f in fileset(path.cwd, "**/*.tf") : f if !startswith(f, ".terraform/")]) : [
-        for m in regexall("resource\\s+\"(kubernetes_(?:cluster_)?role_binding(?:_v1)?)\"\\s+\"([^\"]+)\"", file("${path.cwd}/${f}")) :
-        "${f}:${m[0]}.${m[1]}"
-      ]
-      ])) == jsonencode([
-      "feature/rbac.tf:kubernetes_cluster_role_binding_v1.operator",
-      "feature/rbac.tf:kubernetes_cluster_role_binding_v1.proxy",
+    condition = jsonencode(output.matches) == jsonencode([
+      "feature/rbac.tf:kubernetes_cluster_role_binding_v1 operator",
+      "feature/rbac.tf:kubernetes_cluster_role_binding_v1 proxy",
     ])
     error_message = "bootstrap must declare no role binding beyond the operator and proxy ClusterRoleBindings"
+  }
+}
+
+# Only the operator and proxy pods opt into a token. No account automounts one,
+# no other account or token Secret exists, and no pod projects a token itself.
+run "only_the_operator_and_proxy_pods_carry_a_token" {
+  command = plan
+
+  module {
+    source = "./tests/census"
+  }
+
+  variables {
+    patterns = [
+      "(automount_service_account_token|automountServiceAccountToken)\"?\\s*[=:]\\s*([^\\s,}]+)",
+      "resource\\s+\"?(kubernetes_(?:default_)?service_account(?:_v1)?)\"?\\s+\"?([\\w-]+)\"?",
+      "\"(kubernetes_(?:default_)?service_account(?:_v1)?)\"\\s*:",
+      "kind\"?\\s*[=:]\\s*\"?(ServiceAccount)\\b",
+      "(service_account_token\\s*\\{|serviceAccountToken|service-account-token)",
+    ]
+  }
+
+  assert {
+    condition = jsonencode(output.matches) == jsonencode([
+      "feature/operator.tf:automount_service_account_token true",
+      "feature/rbac.tf:automount_service_account_token false",
+      "feature/rbac.tf:automount_service_account_token false",
+      "feature/rbac.tf:automount_service_account_token false",
+      "feature/rbac.tf:kubernetes_default_service_account_v1 default",
+      "feature/rbac.tf:kubernetes_service_account_v1 operator",
+      "feature/rbac.tf:kubernetes_service_account_v1 proxy",
+      # The two binding subjects.
+      "feature/rbac.tf:ServiceAccount",
+      "feature/rbac.tf:ServiceAccount",
+      "instance/node.tf:automount_service_account_token false",
+      "proxy/deployment.tf:automount_service_account_token true",
+    ])
+    error_message = "only the operator and proxy pod specs may mount a token, and only the three known service accounts may exist"
   }
 }
 
