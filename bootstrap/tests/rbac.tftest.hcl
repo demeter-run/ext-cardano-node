@@ -219,6 +219,36 @@ run "only_the_operator_and_proxy_pods_carry_a_token" {
   }
 }
 
+# The token census above only sees automount where it is written out. A typed
+# pod spec that leaves it out plans as true, and a pod-level true overrides the
+# account's false, so every typed pod-bearing resource must be one of the three
+# whose automount is asserted directly: the operator and proxy Deployments and
+# the node StatefulSet. No manifest may carry a pod-bearing kind either.
+run "only_the_three_known_workloads_exist" {
+  command = plan
+
+  module {
+    source = "./tests/census"
+  }
+
+  variables {
+    patterns = [
+      "resource\\s+\"?(kubernetes_(?:deployment|stateful_set|daemon_set|replica_set|replication_controller|job|cron_job|pod)(?:_v[12])?)\"?\\s+\"?([\\w-]+)\"?",
+      "\"(kubernetes_(?:deployment|stateful_set|daemon_set|replica_set|replication_controller|job|cron_job|pod)(?:_v[12])?)\"\\s*:",
+      "kind\"?\\s*[=:]\\s*\"?(Pod|Deployment|StatefulSet|DaemonSet|ReplicaSet|ReplicationController|Job|CronJob)\\b",
+    ]
+  }
+
+  assert {
+    condition = jsonencode(output.matches) == jsonencode([
+      "feature/operator.tf:kubernetes_deployment_v1 operator",
+      "instance/node.tf:kubernetes_stateful_set_v1 node",
+      "proxy/deployment.tf:kubernetes_deployment_v1 node_proxy",
+    ])
+    error_message = "bootstrap must declare no pod-bearing workload beyond the operator, proxy and node instance ones, whose automount settings are asserted directly"
+  }
+}
+
 run "root_wires_proxy_account_to_both_colors" {
   command = plan
 

@@ -5,8 +5,11 @@ resource "kubernetes_default_service_account_v1" "default" {
   automount_service_account_token = false
 }
 
-// No account automounts a token: the operator and proxy pod specs opt in
-// explicitly, so naming one of these accounts alone never yields a token.
+// No account automounts a token; the operator and proxy pod specs opt in
+// explicitly. The account-level false only applies where the pod-level field
+// is unset, and a typed pod spec that leaves it out plans as true, so every
+// typed pod spec in this tree sets it explicitly (tests/rbac.tftest.hcl pins
+// the set of workloads).
 resource "kubernetes_service_account_v1" "operator" {
   metadata {
     name      = "operator"
