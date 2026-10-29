@@ -18,6 +18,9 @@ resource "kubernetes_deployment_v1" "node_proxy" {
         labels = local.proxy_labels
       }
       spec {
+        service_account_name            = var.service_account_name
+        automount_service_account_token = true
+
         container {
           name              = "main"
           image             = "ghcr.io/demeter-run/ext-cardano-node-proxy:${var.proxy_image_tag}"
@@ -123,4 +126,8 @@ resource "kubernetes_deployment_v1" "node_proxy" {
       }
     }
   }
+}
+
+output "service_account_name" {
+  value = kubernetes_deployment_v1.node_proxy.spec[0].template[0].spec[0].service_account_name
 }

@@ -37,7 +37,7 @@ pub fn build_hostname(key: &str) -> String {
 
 pub async fn build_api_key(crd: &CardanoNodePort) -> Result<String, Error> {
     let namespace = crd.namespace().unwrap();
-    let name = format!("cardano-node-auth-{}", &crd.name_any());
+    let name = format!("cardano-node-auth-{}", crd.name_any());
 
     let password = format!("{}{}", name, namespace).as_bytes().to_vec();
 

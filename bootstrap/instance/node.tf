@@ -185,6 +185,7 @@ resource "kubernetes_stateful_set_v1" "node" {
       }
 
       spec {
+        automount_service_account_token  = false
         termination_grace_period_seconds = var.termination_grace_period_seconds
 
         dynamic "affinity" {
